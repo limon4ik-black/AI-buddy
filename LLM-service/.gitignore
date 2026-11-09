@@ -1,1 +1,4 @@
-junk/playbook
+.env
+.venv
+junk
+data
