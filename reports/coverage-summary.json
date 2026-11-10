@@ -1,0 +1,19 @@
+{
+  "method": "Go cover mapped source lines + Vitest V8 line coverage; all Go cmd/internal files and production frontend TS/TSX files are included; test helpers are excluded.",
+  "backendLines": {
+    "total": 1036,
+    "covered": 905,
+    "pct": 87.36
+  },
+  "frontendLines": {
+    "total": 479,
+    "covered": 435,
+    "skipped": 0,
+    "pct": 90.81
+  },
+  "combinedLines": {
+    "total": 1515,
+    "covered": 1340,
+    "pct": 88.45
+  }
+}

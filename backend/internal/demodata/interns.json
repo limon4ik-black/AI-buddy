@@ -1,0 +1,89 @@
+[
+  {
+    "id": "demo-intern",
+    "email": "intern@example.test",
+    "fullName": "Стажёр",
+    "teamId": "backend",
+    "position": "Backend-стажёр",
+    "startDate": "2026-11-09",
+    "completed": [],
+    "inProgress": []
+  },
+  {
+    "id": "intern-egor",
+    "email": "backend@buddy.test",
+    "fullName": "Егор Соколов",
+    "teamId": "backend",
+    "position": "Go-разработчик · стажёр",
+    "startDate": "2026-11-02",
+    "completed": [
+      "read-welcome",
+      "meet-team",
+      "buddy"
+    ],
+    "inProgress": [
+      "access-tools"
+    ]
+  },
+  {
+    "id": "intern-anna",
+    "email": "frontend@buddy.test",
+    "fullName": "Анна Лебедева",
+    "teamId": "frontend",
+    "position": "Frontend-разработчик · стажёр",
+    "startDate": "2026-11-02",
+    "completed": [
+      "read-welcome",
+      "meet-team",
+      "buddy",
+      "security-basics"
+    ],
+    "inProgress": [
+      "frontend-local"
+    ]
+  },
+  {
+    "id": "intern-maxim",
+    "email": "analytics@buddy.test",
+    "fullName": "Максим Орлов",
+    "teamId": "analytics",
+    "position": "Продуктовый аналитик · стажёр",
+    "startDate": "2026-10-26",
+    "completed": [
+      "read-welcome",
+      "meet-team",
+      "buddy",
+      "access-tools",
+      "security-basics",
+      "analytics-metrics"
+    ],
+    "inProgress": [
+      "analytics-notebook",
+      "team-docs"
+    ]
+  },
+  {
+    "id": "intern-sofia",
+    "email": "qa@buddy.test",
+    "fullName": "София Морозова",
+    "teamId": "qa",
+    "position": "QA-инженер · стажёр",
+    "startDate": "2026-11-02",
+    "completed": [
+      "read-welcome"
+    ],
+    "inProgress": [
+      "meet-team"
+    ]
+  },
+  {
+    "id": "intern-alina",
+    "email": "backend2@buddy.test",
+    "fullName": "Алина Волкова",
+    "teamId": "backend",
+    "position": "Go-разработчик · стажёр",
+    "startDate": "2026-11-09",
+    "completed": [],
+    "inProgress": []
+  }
+]

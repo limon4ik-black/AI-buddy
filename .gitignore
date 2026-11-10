@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.local/
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+*.log
+.DS_Store
+# Rebuild bulky HTML coverage views with scripts/test.sh; keep machine reports.
+reports/backend.html
+reports/frontend/*
+!reports/frontend/coverage-summary.json
+!reports/frontend/lcov.info

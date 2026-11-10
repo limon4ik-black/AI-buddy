@@ -1,0 +1,34 @@
+# VS Code REST Client / JetBrains HTTP Client. Set variables locally; do not commit secrets.
+@info = http://localhost:8082
+@indexerToken = REPLACE_WITH_INDEXER_SERVICE_TOKEN_FROM_LOCAL_ENV
+@chatToken = REPLACE_WITH_CHAT_SERVICE_TOKEN_FROM_LOCAL_ENV
+@userToken = REPLACE_WITH_USER_ACCESS_TOKEN
+
+### RAG indexer: list company-visible teams
+GET {{info}}/internal/v1/teams
+X-Service-Token: {{indexerToken}}
+
+### Team composition, buddyId, service ownership
+GET {{info}}/internal/v1/teams/backend
+X-Service-Token: {{indexerToken}}
+
+### Service catalog filtered by owner
+GET {{info}}/internal/v1/services?ownerTeamId=backend
+X-Service-Token: {{indexerToken}}
+
+### Specific service: ownerTeamId + technicalOwnerId
+GET {{info}}/internal/v1/services/intern-profile
+X-Service-Token: {{indexerToken}}
+
+### Template only: no personal progress or user data
+GET {{info}}/internal/v1/checklist/templates?teamId=backend
+X-Service-Token: {{indexerToken}}
+
+### Full snapshot export; preserve visibility/teamId/deletedAt on chunks
+GET {{info}}/internal/v1/knowledge/documents?limit=100
+X-Service-Token: {{indexerToken}}
+
+### Chat Service only: current user's live context
+GET {{info}}/internal/v1/context
+X-Service-Token: {{chatToken}}
+Authorization: Bearer {{userToken}}
