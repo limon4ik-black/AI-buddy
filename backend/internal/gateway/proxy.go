@@ -63,7 +63,7 @@ func New(cfg Config) (http.Handler, error) {
 		name := ""
 		public := false
 		switch {
-		case path == "/api/v1/auth/register" || path == "/api/v1/auth/login" || path == "/api/v1/auth/refresh" || path == "/api/v1/auth/logout":
+		case path == "/api/v1/auth/register" || path == "/api/v1/auth/login" || path == "/api/v1/auth/refresh" || path == "/api/v1/auth/logout" || path == "/api/v1/auth/google/login" || path == "/api/v1/auth/google/callback":
 			name = "auth"
 			public = true
 		case path == "/api/v1/auth/me":
