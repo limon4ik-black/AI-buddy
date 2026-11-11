@@ -158,6 +158,19 @@ export function AuthScreen({
               <Icon name="arrow" size={18} />
             </button>
           </form>
+          <div className="auth-divider">
+            <span>или</span>
+          </div>
+          <button
+            className="text-button full-width"
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              window.location.assign("/api/v1/auth/google/login");
+            }}
+          >
+            Войти через Google
+          </button>
           <button
             className="text-button auth-switch"
             disabled={busy}

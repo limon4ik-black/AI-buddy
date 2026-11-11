@@ -93,7 +93,13 @@ func (a *Service) googleCallback(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	return a.session(w, r, userID, profile.Email, 200)
+	if err = a.startSession(w, r, userID); err != nil {
+		return err
+	}
+	// Фронт при загрузке сам делает cookie-refresh и входит без токена в URL.
+	origin := strings.TrimRight(config.Env("APP_ORIGIN", "http://localhost:8080"), "/")
+	http.Redirect(w, r, origin+"/", http.StatusFound)
+	return nil
 }
 
 // googleUser resolves the profile to a local account: by google_sub, then by

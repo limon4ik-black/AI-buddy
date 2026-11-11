@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"golang.org/x/oauth2"
@@ -36,26 +37,52 @@ func fakeGoogle(t *testing.T, sub, email string) (*oauth2.Config, string) {
 }
 
 // googleLogin performs the full OAuth round trip through the local fake Google.
-func googleLogin(t *testing.T, client *http.Client, base string) map[string]any {
+// The callback redirects to the frontend, so redirects are stopped and the
+// 302 response is returned; the session cookie lands in the client's jar.
+func googleLogin(t *testing.T, client *http.Client, base string) *http.Response {
 	t.Helper()
-	resp, err := client.Get(base + "/api/v1/auth/google/login")
+	nr := &http.Client{
+		Jar:     client.Jar,
+		Timeout: client.Timeout,
+		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
+			// Останавливаемся только на редиректе колбэка во фронт (корень без query).
+			if req.URL.Path == "/" && req.URL.RawQuery == "" {
+				return http.ErrUseLastResponse
+			}
+			return nil
+		},
+	}
+	resp, err := nr.Get(base + "/api/v1/auth/google/login")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		t.Fatalf("google login status: %d url: %s body: %s", resp.StatusCode, resp.Request.URL, body)
+	return resp
+}
+
+// refreshAccessToken exchanges the session cookie for a fresh access token.
+func refreshAccessToken(t *testing.T, client *http.Client, base string) string {
+	t.Helper()
+	raw := req(t, client, base, "POST", "/api/v1/auth/refresh", "", nil, 200)
+	var out struct {
+		AccessToken string `json:"accessToken"`
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+	if err := json.Unmarshal(raw, &out); err != nil || out.AccessToken == "" {
+		t.Fatalf("refresh: %s", raw)
+	}
+	return out.AccessToken
+}
+
+// meUserID returns the user id from /me for the given access token.
+func meUserID(t *testing.T, client *http.Client, base, access string) string {
+	t.Helper()
+	raw := req(t, client, base, "GET", "/api/v1/auth/me", access, nil, 200)
+	var out struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatal(err)
 	}
-	var out map[string]any
-	if err := json.Unmarshal(body, &out); err != nil {
-		t.Fatalf("google login body: %s", body)
-	}
-	return out
+	return out.ID
 }
 
 func TestGoogleAuthCreatesAccounts(t *testing.T) {
@@ -67,20 +94,37 @@ func TestGoogleAuthCreatesAccounts(t *testing.T) {
 	h.auth.Google = conf
 	h.auth.GoogleUserInfo = fakeURL + "/userinfo"
 
+	// Первый вход: 302 на фронт + сессия в cookie.
 	first := googleLogin(t, h.client, server.URL)
-	user := first["user"].(map[string]any)
-	if user["email"] != "google@example.test" || user["role"] != "intern" {
-		t.Fatalf("unexpected user: %v", user)
+	defer first.Body.Close()
+	if first.StatusCode != http.StatusFound {
+		body, _ := io.ReadAll(first.Body)
+		t.Fatalf("google login status: %d body: %s", first.StatusCode, body)
 	}
-	access, ok := first["accessToken"].(string)
-	if !ok || access == "" {
-		t.Fatalf("no access token: %v", first)
+	if loc := first.Header.Get("Location"); !strings.HasSuffix(loc, "/") {
+		t.Fatalf("expected redirect to frontend root, got %q", loc)
+	}
+	access := refreshAccessToken(t, h.client, server.URL)
+	userID := meUserID(t, h.client, server.URL, access)
+	me := req(t, h.client, server.URL, "GET", "/api/v1/auth/me", access, nil, 200)
+	var meOut struct {
+		Email string `json:"email"`
+	}
+	if err := json.Unmarshal(me, &meOut); err != nil {
+		t.Fatal(err)
+	}
+	if meOut.Email != "google@example.test" {
+		t.Fatalf("/me mismatch: body %s", me)
 	}
 
 	// Тот же Google-аккаунт повторно: тот же user_id.
 	again := googleLogin(t, h.client, server.URL)
-	if again["user"].(map[string]any)["id"] != user["id"] {
-		t.Fatalf("same sub produced different users: %v vs %v", again["user"], user)
+	again.Body.Close()
+	if again.StatusCode != http.StatusFound {
+		t.Fatalf("second login status: %d", again.StatusCode)
+	}
+	if againID := meUserID(t, h.client, server.URL, refreshAccessToken(t, h.client, server.URL)); againID != userID {
+		t.Fatalf("same sub produced different users: %s vs %s", againID, userID)
 	}
 
 	// Тот же email с другим Google-аккаунтом: привязка к существующему юзеру.
@@ -89,20 +133,11 @@ func TestGoogleAuthCreatesAccounts(t *testing.T) {
 	h.auth.Google = conf2
 	h.auth.GoogleUserInfo = fakeURL2 + "/userinfo"
 	linked := googleLogin(t, h.client, server.URL)
-	if linked["user"].(map[string]any)["id"] != user["id"] {
-		t.Fatalf("email link failed: %v", linked["user"])
+	linked.Body.Close()
+	if linked.StatusCode != http.StatusFound {
+		t.Fatalf("link login status: %d", linked.StatusCode)
 	}
-
-	// Выданный access-токен работает на /me.
-	me := req(t, h.client, server.URL, "GET", "/api/v1/auth/me", access, nil, 200)
-	var meOut struct {
-		ID    string `json:"id"`
-		Email string `json:"email"`
-	}
-	if err := json.Unmarshal(me, &meOut); err != nil {
-		t.Fatal(err)
-	}
-	if meOut.ID != user["id"] || meOut.Email != "google@example.test" {
-		t.Fatalf("/me mismatch: body %s", me)
+	if linkedID := meUserID(t, h.client, server.URL, refreshAccessToken(t, h.client, server.URL)); linkedID != userID {
+		t.Fatalf("email link failed: %s vs %s", linkedID, userID)
 	}
 }

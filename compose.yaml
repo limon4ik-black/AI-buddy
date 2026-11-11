@@ -43,6 +43,7 @@ services:
       DATABASE_URL: postgres://auth_user:${AUTH_DB_PASSWORD}@postgres:5432/auth_db?sslmode=disable
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       SEED_DEMO: ${SEED_DEMO:-true}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
