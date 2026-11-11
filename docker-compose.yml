@@ -1,0 +1,21 @@
+# Локальная инфраструктура для разработки AI-buddy.
+services:
+  # Redis для auth-домена: хранение refresh-токенов (ротация, reuse-детект).
+  # Имя подчёркнуто "auth", чтобы не путать с прочим кэшем, если появится.
+  redis-auth:
+    image: redis:7-alpine
+    container_name: ai-buddy-redis-auth
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-auth-data:/data
+    # AOF: refresh-токены не должны пропасть при перезапуске контейнера.
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-auth-data:
