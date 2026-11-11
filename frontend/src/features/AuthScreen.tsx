@@ -14,6 +14,8 @@ export function AuthScreen({
   codeSent,
   onLogin,
   onConfirm,
+  onForgot,
+  onResetConfirm,
 }: {
   busy: boolean;
   error: string;
@@ -25,11 +27,14 @@ export function AuthScreen({
     register: boolean,
   ) => Promise<void>;
   onConfirm: (code: string) => Promise<void>;
+  onForgot: (email: string) => Promise<boolean>;
+  onResetConfirm: (code: string, password: string) => Promise<void>;
 }) {
   const [email, setEmail] = useState(demoAccounts[0].email),
     [password, setPassword] = useState(demoPassword),
     [register, setRegister] = useState(false),
-    [code, setCode] = useState("");
+    [code, setCode] = useState(""),
+    [reset, setReset] = useState<"ask" | "code" | null>(null);
   function submit(e: FormEvent) {
     e.preventDefault();
     void onLogin(email, password, register);
@@ -37,6 +42,18 @@ export function AuthScreen({
   function submitCode(e: FormEvent) {
     e.preventDefault();
     void onConfirm(code);
+  }
+  async function askReset(e: FormEvent) {
+    e.preventDefault();
+    if (await onForgot(email)) setReset("code");
+  }
+  function submitReset(e: FormEvent) {
+    e.preventDefault();
+    void onResetConfirm(code, password);
+  }
+  function backToLogin() {
+    setReset(null);
+    setPassword("");
   }
   return (
     <main className="auth-page">
@@ -100,7 +117,90 @@ export function AuthScreen({
                 : "Выбери стажёра или войди со своим аккаунтом."}
             </p>
           </div>
-          {codeSent ? (
+          {reset === "code" ? (
+            <form onSubmit={submitReset}>
+              {notice && (
+                <div className="inline-notice" role="status">
+                  {notice}
+                </div>
+              )}
+              {error && (
+                <div className="inline-error" role="alert">
+                  <Icon name="shield" size={18} />
+                  {error}
+                </div>
+              )}
+              <label>
+                Код из письма
+                <input
+                  className="code-input"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="000000"
+                />
+              </label>
+              <label>
+                Новый пароль
+                <input
+                  type="password"
+                  minLength={10}
+                  maxLength={72}
+                  autoComplete="new-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </label>
+              <button className="primary-button full-width" disabled={busy}>
+                {busy ? "Меняем пароль…" : "Сменить пароль"}
+                <Icon name="arrow" size={18} />
+              </button>
+              <button
+                type="button"
+                className="text-button auth-switch"
+                disabled={busy}
+                onClick={backToLogin}
+              >
+                Вернуться ко входу
+              </button>
+            </form>
+          ) : reset === "ask" ? (
+            <form onSubmit={askReset}>
+              {error && (
+                <div className="inline-error" role="alert">
+                  <Icon name="shield" size={18} />
+                  {error}
+                </div>
+              )}
+              <label>
+                Email
+                <input
+                  type="email"
+                  autoComplete="username"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.ru"
+                />
+              </label>
+              <button className="primary-button full-width" disabled={busy}>
+                {busy ? "Отправляем…" : "Получить код"}
+                <Icon name="arrow" size={18} />
+              </button>
+              <button
+                type="button"
+                className="text-button auth-switch"
+                disabled={busy}
+                onClick={backToLogin}
+              >
+                Вернуться ко входу
+              </button>
+            </form>
+          ) : codeSent ? (
             <form onSubmit={submitCode}>
               {notice && (
                 <div className="inline-notice" role="status">
@@ -240,6 +340,19 @@ export function AuthScreen({
           >
             {register ? "Уже есть аккаунт? Войти" : "Создать свой аккаунт"}
           </button>
+          {!register && (
+            <button
+              className="text-button auth-switch"
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setReset("ask");
+                setPassword("");
+              }}
+            >
+              Забыли пароль?
+            </button>
+          )}
             </>
           )}
           <p className="auth-footnote">

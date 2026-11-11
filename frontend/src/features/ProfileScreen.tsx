@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { Buddy } from "../hooks/useBuddy";
-import type { Document } from "../api";
+import { api, type Document } from "../api";
+import { errorText } from "../hooks/useBuddy";
 import { Icon } from "../components/Icon";
 import { dateLabel, initials, roleLabel, teamColors } from "../model";
 export function ProfileScreen({
@@ -98,6 +99,7 @@ export function ProfileScreen({
           </button>
         </form>
       )}
+      <SecuritySection email={d.account.email} onNotice={buddy.setNotice} />
       <div className="profile-grid">
         <div className="profile-main">
           <section className="progress-summary">
@@ -369,5 +371,132 @@ export function ProfileScreen({
         </aside>
       </div>
     </div>
+  );
+}
+
+function SecuritySection({
+  email,
+  onNotice,
+}: {
+  email: string;
+  onNotice: (text: string) => void;
+}) {
+  const [open, setOpen] = useState(false),
+    [stage, setStage] = useState<"ask" | "code">("ask"),
+    [code, setCode] = useState(""),
+    [password, setPassword] = useState(""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  async function request(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await api.request("/auth/password/reset", "POST", { email });
+      setStage("code");
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function confirm(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await api.request("/auth/password/confirm", "POST", {
+        code,
+        newPassword: password,
+      });
+      setOpen(false);
+      setStage("ask");
+      setCode("");
+      setPassword("");
+      onNotice("Пароль обновлён");
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!open)
+    return (
+      <button
+        className="secondary-button security-toggle"
+        onClick={() => {
+          setOpen(true);
+          setStage("ask");
+        }}
+      >
+        <Icon name="shield" size={16} />
+        Безопасность: сменить пароль
+      </button>
+    );
+  return (
+    <section className="security-section">
+      <h2>Безопасность</h2>
+      <p>Подтверди смену пароля кодом из письма на {email}.</p>
+      {stage === "ask" ? (
+        <form className="security-form" onSubmit={request}>
+          <button className="primary-button" disabled={busy}>
+            {busy ? "Отправляем…" : "Получить код"}
+          </button>
+          <button
+            type="button"
+            className="text-button"
+            disabled={busy}
+            onClick={() => setOpen(false)}
+          >
+            Отмена
+          </button>
+        </form>
+      ) : (
+        <form className="security-form" onSubmit={confirm}>
+          <label>
+            Код из письма
+            <input
+              className="code-input"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="000000"
+            />
+          </label>
+          <label>
+            Новый пароль
+            <input
+              type="password"
+              minLength={10}
+              maxLength={72}
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <button className="primary-button" disabled={busy}>
+            {busy ? "Меняем пароль…" : "Сменить пароль"}
+          </button>
+          <button
+            type="button"
+            className="text-button"
+            disabled={busy}
+            onClick={() => setOpen(false)}
+          >
+            Отмена
+          </button>
+        </form>
+      )}
+      {error && (
+        <p className="inline-error" role="alert">
+          <Icon name="shield" size={16} />
+          {error}
+        </p>
+      )}
+    </section>
   );
 }

@@ -24,6 +24,11 @@ var AuthEmail []byte
 //go:embed auth/004_pending.sql
 var AuthPending []byte
 
+// AuthPassword adds the code purpose column for password resets.
+//
+//go:embed auth/005_password.sql
+var AuthPassword []byte
+
 // Chat is the initial schema for chat history.
 //
 //go:embed chat/001_init.sql

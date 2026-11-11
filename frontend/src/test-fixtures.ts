@@ -204,6 +204,21 @@ export function fakeFetch(state: MockState) {
       state.resume = true;
       return response({ accessToken: "test-token", expiresIn: 900 });
     }
+    if (path === "/auth/password/reset") {
+      state.loginCode = "123456";
+      return response({
+        message: "Если аккаунт существует, код отправлен на почту",
+      });
+    }
+    if (path === "/auth/password/confirm") {
+      if (body.code !== state.loginCode)
+        return response(
+          { error: { message: "Код неверный или устарел" } },
+          400,
+        );
+      state.resume = true;
+      return response({ accessToken: "test-token", expiresIn: 900 });
+    }
     if (path === "/auth/logout") {
       state.resume = false;
       return response(null, 204);

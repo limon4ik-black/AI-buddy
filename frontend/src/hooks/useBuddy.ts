@@ -161,6 +161,39 @@ export function useBuddy() {
       setAuthBusy(false);
     }
   }
+  async function forgotPassword(email: string) {
+    setAuthBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await api.request("/auth/password/reset", "POST", { email });
+      setNotice("Если аккаунт существует, код отправлен на почту");
+      return true;
+    } catch (e) {
+      setError(errorText(e));
+      return false;
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+  async function resetPassword(code: string, password: string) {
+    setAuthBusy(true);
+    setError("");
+    try {
+      await api.request("/auth/password/confirm", "POST", {
+        code,
+        newPassword: password,
+      });
+      setCodeSent(false);
+      setNotice("");
+      epoch.current++;
+      await loadWorkspace();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setAuthBusy(false);
+    }
+  }
   async function logout() {
     setAuthBusy(true);
     try {
@@ -433,6 +466,8 @@ export function useBuddy() {
     setNotice,
     setPendingAction,
     login,
+    forgotPassword,
+    resetPassword,
     logout,
     navigate,
     newChat,

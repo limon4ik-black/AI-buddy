@@ -48,6 +48,8 @@ export function App() {
         codeSent={buddy.codeSent}
         onLogin={buddy.login}
         onConfirm={buddy.confirmCode}
+        onForgot={buddy.forgotPassword}
+        onResetConfirm={buddy.resetPassword}
       />
     );
   function openSource(source: Source) {

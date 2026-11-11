@@ -28,6 +28,16 @@ async function openProfile(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Открыть профиль" }));
   await screen.findByRole("heading", { name: "Профиль и адаптация" });
 }
+it("recovers the password with an email code", async () => {
+  render(<App />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Забыли пароль?" }));
+  await user.click(screen.getByRole("button", { name: "Получить код" }));
+  await user.type(await screen.findByPlaceholderText("000000"), "123456");
+  await user.type(screen.getByLabelText("Новый пароль"), "NewPassword123!");
+  await user.click(screen.getByRole("button", { name: "Сменить пароль" }));
+  await screen.findByRole("heading", { name: /С чего начнём/ });
+});
 it("shows a team-aware chat, confirms a request and saves progress in the profile", async () => {
   const user = await login("Анна Frontend");
   await user.click(
