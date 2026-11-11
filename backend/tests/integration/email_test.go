@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -70,6 +71,11 @@ func TestEmailLoginFlow(t *testing.T) {
 	waitForLetter(t, mailer, 1)
 	if len(mailer.bodies) != 1 {
 		t.Fatalf("register should send exactly one letter, got %d", len(mailer.bodies))
+	}
+	// Аккаунт не должен существовать до ввода кода.
+	var count int
+	if e := h.auth.DB.QueryRow(context.Background(), "SELECT count(*) FROM users WHERE email=$1", email).Scan(&count); e != nil || count != 0 {
+		t.Fatalf("user must not exist before confirmation: count=%d err=%v", count, e)
 	}
 
 	wrong := post(t, h.client, srv.URL, "/api/v1/auth/login", "", map[string]string{"email": email, "password": "WrongPassword123!"}, 401)

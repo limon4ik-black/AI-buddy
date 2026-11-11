@@ -100,6 +100,10 @@ func (a *Service) googleCallback(w http.ResponseWriter, r *http.Request) error {
 
 func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, error) {
 	email := strings.ToLower(p.Email)
+	// Заявка с этой почтой больше не нужна: гугл подтвердил её.
+	if _, err := a.DB.Exec(ctx, "DELETE FROM pending_registrations WHERE email=$1", email); err != nil {
+		return "", err
+	}
 
 	var id string
 	err := a.DB.QueryRow(ctx, "SELECT id FROM users WHERE google_sub=$1", p.Sub).Scan(&id)

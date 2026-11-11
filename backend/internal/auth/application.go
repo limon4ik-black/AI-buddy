@@ -16,7 +16,7 @@ func NewApplication(ctx context.Context) (http.Handler, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	db, err := postgres.Open(ctx, os.Getenv("DATABASE_URL"), "auth", migrations.Auth, migrations.AuthGoogle, migrations.AuthEmail)
+	db, err := postgres.Open(ctx, os.Getenv("DATABASE_URL"), "auth", migrations.Auth, migrations.AuthGoogle, migrations.AuthEmail, migrations.AuthPending)
 	if err != nil {
 		return nil, nil, err
 	}

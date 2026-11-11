@@ -19,10 +19,11 @@ func TestAuthLifecycle(t *testing.T) {
 	h.auth.Mailer = mailer
 	data := obj("email", "NEW@example.test", "password", "LongPassword123!")
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 201)
-	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 409)
 	waitForLetter(t, mailer, 1)
 	codeValue := mailer.lastCode(t)
 	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/confirm", "", obj("code", codeValue), 200)
+	// Аккаунт создан - повторная регистрация на ту же почту отклоняется.
+	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 409)
 	token := unpack[struct{ AccessToken string }](t, raw).AccessToken
 	req(t, h.client, h.gateway, "GET", "/api/v1/auth/me", token, nil, 200)
 	u, _ := url.Parse(h.gateway + "/api/v1/auth/refresh")

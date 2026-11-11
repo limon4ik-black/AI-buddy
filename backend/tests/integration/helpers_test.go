@@ -83,7 +83,7 @@ func database(t *testing.T, name string) *pgxpool.Pool {
 		updates = append(updates, migrations.InfoMVP)
 	}
 	if name == "auth" {
-		updates = append(updates, migrations.AuthGoogle, migrations.AuthEmail)
+		updates = append(updates, migrations.AuthGoogle, migrations.AuthEmail, migrations.AuthPending)
 	}
 	db, e := postgres.Open(context.Background(), u.String(), name, map[string][]byte{"auth": migrations.Auth, "info": migrations.Info, "chat": migrations.Chat}[name], updates...)
 	if e != nil {

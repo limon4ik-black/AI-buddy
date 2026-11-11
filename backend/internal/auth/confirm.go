@@ -3,12 +3,14 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/big"
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/limon4ik-black/AI-buddy/backend/internal/platform/httpapi"
 	"github.com/limon4ik-black/AI-buddy/backend/internal/platform/idgen"
 	"github.com/limon4ik-black/AI-buddy/backend/internal/platform/security"
@@ -87,6 +89,44 @@ func (a *Service) sendLoginCodeBody(ctx context.Context, userID, email, sid stri
 	return nil
 }
 
+// sendPendingCodeAsync mails the code that completes a pending registration.
+func (a *Service) sendPendingCodeAsync(w http.ResponseWriter, r *http.Request, email string) {
+	sid := idgen.New() + idgen.New()
+	http.SetCookie(w, &http.Cookie{
+		Name: loginSIDCookie, Value: sid, Path: "/api/v1/auth", MaxAge: 600,
+		HttpOnly: true, Secure: a.SecureCookie, SameSite: http.SameSiteLaxMode,
+	})
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("login code sender panicked", "panic", r)
+			}
+		}()
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+		defer cancel()
+		if err := a.sendPendingCode(ctx, email, sid); err != nil {
+			slog.Warn("login code email failed", "error", err)
+		}
+	}()
+}
+
+// sendPendingCode stores the code hash in the pending registration row.
+func (a *Service) sendPendingCode(ctx context.Context, email, sid string) error {
+	if a.Mailer == nil {
+		return nil
+	}
+	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+	if err != nil {
+		return err
+	}
+	code := fmt.Sprintf("%06d", n.Int64())
+	if _, err := a.DB.Exec(ctx, "UPDATE pending_registrations SET code_hash=$1, code_expires_at=$2 WHERE email=$3",
+		security.TokenHash(code+"|"+sid), time.Now().Add(7*time.Minute), email); err != nil {
+		return err
+	}
+	return a.Mailer.Send(email, "Код для входа в AI-buddy", loginCodeText(code), loginCodeHTML(code))
+}
+
 func (a *Service) confirmCode(w http.ResponseWriter, r *http.Request) error {
 	req, err := httpapi.Decode[struct {
 		Code string `json:"code"`
@@ -105,8 +145,22 @@ func (a *Service) confirmCode(w http.ResponseWriter, r *http.Request) error {
 	var userID string
 	err = a.DB.QueryRow(r.Context(), "DELETE FROM login_confirmations WHERE token_hash=$1 AND expires_at>now() RETURNING user_id",
 		security.TokenHash(req.Code+"|"+sidCookie.Value)).Scan(&userID)
-	if err != nil {
-		return httpapi.Problem(400, "invalid_code", "Код неверный или устарел")
+	switch {
+	case err == nil:
+	case errors.Is(err, pgx.ErrNoRows):
+		// Код не из сессии существующего юзера - может, это завершение регистрации.
+		var email, hash string
+		if e := a.DB.QueryRow(r.Context(), "DELETE FROM pending_registrations WHERE code_hash=$1 AND code_expires_at>now() RETURNING email, password_hash",
+			security.TokenHash(req.Code+"|"+sidCookie.Value)).Scan(&email, &hash); e != nil {
+			return httpapi.Problem(400, "invalid_code", "Код неверный или устарел")
+		}
+		userID = idgen.New()
+		if _, e := a.DB.Exec(r.Context(), "INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)",
+			userID, email, hash); e != nil {
+			return e
+		}
+	default:
+		return err
 	}
 
 	var email string

@@ -174,6 +174,8 @@ it("renames, finds and deletes chats without mixing accounts", async () => {
   await user.click(
     screen.getByRole("button", { name: "Войти в пространство" }),
   );
+  await user.type(await screen.findByPlaceholderText("000000"), "123456");
+  await user.click(await screen.findByRole("button", { name: "Подтвердить вход" }));
   await screen.findByRole("heading", { name: /Привет, София/ });
   expect(screen.queryByRole("button", { name: "Мой первый день" })).toBeNull();
   await openProfile(user);

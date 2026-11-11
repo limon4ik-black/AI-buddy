@@ -14,10 +14,15 @@ var Auth []byte
 //go:embed auth/002_google.sql
 var AuthGoogle []byte
 
-// AuthEmail adds email verification to the auth database.
+// AuthEmail adds login confirmations and pending registrations to the auth database.
 //
 //go:embed auth/003_email.sql
 var AuthEmail []byte
+
+// AuthPending adds pending registrations to the auth database.
+//
+//go:embed auth/004_pending.sql
+var AuthPending []byte
 
 // Chat is the initial schema for chat history.
 //
