@@ -5,6 +5,7 @@ import { Brand, Icon } from "./components/Icon";
 import { Sidebar } from "./components/Sidebar";
 import { Dialog } from "./components/Dialog";
 import { AuthScreen } from "./features/AuthScreen";
+import { Pet } from "./components/Pet";
 import { ChatScreen } from "./features/ChatScreen";
 import { ProfileScreen } from "./features/ProfileScreen";
 import {
@@ -203,7 +204,10 @@ export function App() {
             />
           )}{" "}
           {buddy.view === "knowledge" && (
-            <KnowledgeScreen data={d} onDocument={setDocument} />
+            <>
+              <KnowledgeScreen data={d} onDocument={setDocument} />
+              <Pet busy={buddy.generating} />
+            </>
           )}
         </div>
       </main>

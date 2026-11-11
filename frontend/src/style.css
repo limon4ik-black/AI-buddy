@@ -1492,6 +1492,73 @@ button {
   grid-template-columns: minmax(0, 1fr) 245px;
   gap: 24px;
 }
+.pet {
+  position: fixed;
+  right: 28px;
+  bottom: 26px;
+  z-index: 20;
+  pointer-events: none;
+  transition: right 3.5s ease-in-out;
+}
+.pet-side-b {
+  right: 150px;
+}
+.pet-flip {
+  display: block;
+}
+.pet-side-b .pet-flip {
+  transform: scaleX(-1);
+}
+.pet img {
+  display: block;
+  width: 96px;
+  height: auto;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.08));
+  animation: pet-breathe 3.2s ease-in-out infinite;
+}
+.pet-run img {
+  animation: pet-waddle 0.45s ease-in-out infinite alternate;
+}
+.pet-jump img {
+  animation: pet-bounce 0.7s ease 1;
+}
+.pet-think img {
+  animation: pet-tilt 2.6s ease-in-out infinite;
+}
+@keyframes pet-breathe {
+  50% {
+    transform: translateY(3px) scale(1.015);
+  }
+}
+@keyframes pet-waddle {
+  0% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  100% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+@keyframes pet-bounce {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateY(-14px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes pet-tilt {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+}
 .profile-main {
   min-width: 0;
 }
