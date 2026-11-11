@@ -84,6 +84,9 @@ func (a *Service) googleCallback(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return httpapi.Problem(502, "google_profile", "Не удалось получить профиль Google")
 	}
+	if profile.Email == "" {
+		return httpapi.Problem(400, "google_no_email", "У аккаунта Google недоступен email — разрешите доступ к email при входе")
+	}
 
 	userID, err := a.googleUser(r.Context(), profile)
 	if err != nil {
@@ -132,6 +135,9 @@ func (a *Service) fetchGoogleProfile(ctx context.Context, conf *oauth2.Config, t
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("google userinfo: %s", resp.Status)
+	}
 	var p googleProfile
 	if err = json.NewDecoder(io.LimitReader(resp.Body, 1<<16)).Decode(&p); err != nil {
 		return nil, err
