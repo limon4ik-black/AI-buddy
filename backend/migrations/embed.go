@@ -9,6 +9,26 @@ import (
 //go:embed auth/001_init.sql
 var Auth []byte
 
+// AuthGoogle adds Google identity columns to the auth database.
+//
+//go:embed auth/002_google.sql
+var AuthGoogle []byte
+
+// AuthEmail adds login confirmations and pending registrations to the auth database.
+//
+//go:embed auth/003_email.sql
+var AuthEmail []byte
+
+// AuthPending adds pending registrations to the auth database.
+//
+//go:embed auth/004_pending.sql
+var AuthPending []byte
+
+// AuthPassword adds the code purpose column for password resets.
+//
+//go:embed auth/005_password.sql
+var AuthPassword []byte
+
 // Chat is the initial schema for chat history.
 //
 //go:embed chat/001_init.sql

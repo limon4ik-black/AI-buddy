@@ -15,10 +15,16 @@ func TestAuthLifecycle(t *testing.T) {
 	for _, data := range []any{obj("email", "bad", "password", "long-password"), obj("email", "a@example.test", "password", "short"), obj("email", "Name <a@example.test>", "password", "long-password"), obj("extra", true)} {
 		req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 400)
 	}
+	mailer := &captureMailer{}
+	h.auth.Mailer = mailer
 	data := obj("email", "NEW@example.test", "password", "LongPassword123!")
-	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 201)
-	token := unpack[struct{ AccessToken string }](t, raw).AccessToken
+	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 201)
+	waitForLetter(t, mailer, 1)
+	codeValue := mailer.lastCode(t)
+	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/confirm", "", obj("code", codeValue), 200)
+	// Аккаунт создан - повторная регистрация на ту же почту отклоняется.
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 409)
+	token := unpack[struct{ AccessToken string }](t, raw).AccessToken
 	req(t, h.client, h.gateway, "GET", "/api/v1/auth/me", token, nil, 200)
 	u, _ := url.Parse(h.gateway + "/api/v1/auth/refresh")
 	oldCookie := h.client.Jar.Cookies(u)
@@ -32,7 +38,10 @@ func TestAuthLifecycle(t *testing.T) {
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/logout", "", nil, 204)
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/refresh", "", nil, 401)
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/login", "", data, 200)
-	// Exactly one caller can consume a refresh token, even with concurrent delivery.
+	waitForLetter(t, mailer, 2)
+	codeValue = mailer.lastCode(t)
+	raw = req(t, h.client, h.gateway, "POST", "/api/v1/auth/confirm", "", obj("code", codeValue), 200)
+	token = unpack[struct{ AccessToken string }](t, raw).AccessToken
 	cookies := h.client.Jar.Cookies(u)
 	var wg sync.WaitGroup
 	statuses := make(chan int, 2)

@@ -44,7 +44,12 @@ export function App() {
       <AuthScreen
         busy={buddy.authBusy}
         error={buddy.error}
+        notice={buddy.notice}
+        codeSent={buddy.codeSent}
         onLogin={buddy.login}
+        onConfirm={buddy.confirmCode}
+        onForgot={buddy.forgotPassword}
+        onResetConfirm={buddy.resetPassword}
       />
     );
   function openSource(source: Source) {

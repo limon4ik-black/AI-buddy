@@ -24,7 +24,8 @@ export function useBuddy() {
     [booting, setBooting] = useState(true),
     [authBusy, setAuthBusy] = useState(false),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [codeSent, setCodeSent] = useState(false);
   const [view, setView] = useState<View>("chat"),
     [chatId, setChatId] = useState<string | null>(null),
     [messages, setMessages] = useState<Message[]>([]),
@@ -127,11 +128,64 @@ export function useBuddy() {
   async function login(email: string, password: string, register = false) {
     setAuthBusy(true);
     setError("");
+    setNotice("");
     try {
-      await api.request("/auth/" + (register ? "register" : "login"), "POST", {
-        email,
-        password,
+      const res = await api.request<{ message?: string }>(
+        "/auth/" + (register ? "register" : "login"),
+        "POST",
+        { email, password },
+      );
+      setCodeSent(true);
+      setNotice(
+        res?.message ||
+          "Код для входа отправлен на " + email + ". Проверь почту.",
+      );
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+  async function confirmCode(code: string) {
+    setAuthBusy(true);
+    setError("");
+    try {
+      await api.request("/auth/confirm", "POST", { code });
+      setCodeSent(false);
+      setNotice("");
+      epoch.current++;
+      await loadWorkspace();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+  async function forgotPassword(email: string) {
+    setAuthBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await api.request("/auth/password/reset", "POST", { email });
+      setNotice("Если аккаунт существует, код отправлен на почту");
+      return true;
+    } catch (e) {
+      setError(errorText(e));
+      return false;
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+  async function resetPassword(code: string, password: string) {
+    setAuthBusy(true);
+    setError("");
+    try {
+      await api.request("/auth/password/confirm", "POST", {
+        code,
+        newPassword: password,
       });
+      setCodeSent(false);
+      setNotice("");
       epoch.current++;
       await loadWorkspace();
     } catch (e) {
@@ -392,6 +446,8 @@ export function useBuddy() {
     authBusy,
     error,
     notice,
+    codeSent,
+    confirmCode,
     view,
     chatId,
     messages,
@@ -410,6 +466,8 @@ export function useBuddy() {
     setNotice,
     setPendingAction,
     login,
+    forgotPassword,
+    resetPassword,
     logout,
     navigate,
     newChat,

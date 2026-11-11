@@ -14,13 +14,20 @@ func (a *Service) cookie(w http.ResponseWriter, value string, maxAge int) {
 }
 
 func (a *Service) session(w http.ResponseWriter, r *http.Request, id, email string, status int) error {
+	if e := a.startSession(w, r, id); e != nil {
+		return e
+	}
+	httpapi.JSON(w, status, map[string]any{"accessToken": a.Keys.Sign(id, email), "expiresIn": 900, "user": map[string]string{"id": id, "email": email, "role": "intern"}})
+	return nil
+}
+
+func (a *Service) startSession(w http.ResponseWriter, r *http.Request, id string) error {
 	token := idgen.New() + idgen.New()
 	_, e := a.DB.Exec(r.Context(), "INSERT INTO refresh_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)", security.TokenHash(token), id, time.Now().Add(7*24*time.Hour))
 	if e != nil {
 		return e
 	}
 	a.cookie(w, token, 7*24*3600)
-	httpapi.JSON(w, status, map[string]any{"accessToken": a.Keys.Sign(id, email), "expiresIn": 900, "user": map[string]string{"id": id, "email": email, "role": "intern"}})
 	return nil
 }
 
@@ -29,7 +36,6 @@ func (a *Service) refresh(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return httpapi.Problem(401, "invalid_session", "Войдите в систему")
 	}
-	// Consume and replace atomically, so concurrent refreshes cannot reuse a session.
 	tx, e := a.DB.Begin(r.Context())
 	if e != nil {
 		return e

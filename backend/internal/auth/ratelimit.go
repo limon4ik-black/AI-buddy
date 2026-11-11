@@ -15,7 +15,6 @@ type attempt struct {
 
 func (a *Service) limited(fn httpapi.Endpoint) httpapi.Endpoint {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		// The gateway does not forward client X-Forwarded-For. Bound memory and attempts.
 		a.mu.Lock()
 		if a.attempts == nil {
 			a.attempts = map[string]attempt{}

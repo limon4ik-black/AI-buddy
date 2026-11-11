@@ -552,6 +552,56 @@ button {
   margin-top: 20px;
   font-size: 11px;
 }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 17px 0 4px;
+  color: #9aa0aa;
+  font-size: 10px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #c9ccd4;
+}
+.auth-card .google-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 15px 16px;
+  background: #fff;
+  border: 1px solid #d5d8de;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #171717;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.auth-card .google-button:hover:not(:disabled) {
+  background: #f4f6f8;
+}
+.auth-card .google-button:disabled {
+  opacity: 0.6;
+}
+.auth-card .google-button svg {
+  width: 20px;
+  height: 20px;
+}
+.auth-card .code-input {
+  width: 100%;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-align: center;
+  padding: 12px;
+}
 .auth-footnote {
   font-size: 9px;
   color: #777783;
@@ -573,6 +623,15 @@ button {
   color: #c84150;
   background: #fff0f1;
   border: 1px solid #ffdee3;
+  border-radius: 9px;
+  padding: 11px 12px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.inline-notice {
+  color: #4d7f1f;
+  background: #f2f8e8;
+  border: 1px solid #d9ecca;
   border-radius: 9px;
   padding: 11px 12px;
   font-size: 11px;
@@ -1391,6 +1450,42 @@ button {
 .profile-editor input {
   font-size: 12px;
   width: 100%;
+}
+.security-section {
+  background: #f0f8fc;
+  border: 1px solid #d9ecf7;
+  border-radius: 12px;
+  padding: 20px;
+  margin: -10px 0 25px;
+}
+.security-section h2 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin: 0 0 6px;
+}
+.security-section > p {
+  color: #63666d;
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+.security-form {
+  display: flex;
+  align-items: end;
+  gap: 13px;
+  flex-wrap: wrap;
+}
+.security-form > label {
+  flex: 1;
+  min-width: 160px;
+}
+.security-form input {
+  font-size: 12px;
+  width: 100%;
+}
+.security-toggle {
+  width: 100%;
+  margin: -10px 0 25px;
 }
 .profile-grid {
   display: grid;

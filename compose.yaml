@@ -43,6 +43,17 @@ services:
       DATABASE_URL: postgres://auth_user:${AUTH_DB_PASSWORD}@postgres:5432/auth_db?sslmode=disable
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       SEED_DEMO: ${SEED_DEMO:-true}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on: {postgres: {condition: service_healthy}}
   info:
     <<: *runtime
@@ -82,6 +93,13 @@ services:
     <<: *runtime
     build: {context: ./backend, args: {SERVICE: corpmock}}
     environment: {PORT: 8085, LISTEN_ADDR: ':8085', CORP_SERVICE_TOKEN: '${CORP_SERVICE_TOKEN}'}
+  # TCP relay into the host loopback proxy (xray on 127.0.0.1:10808):
+  # containers cannot reach the host's 127.0.0.1 directly.
+  proxy-relay:
+    image: alpine/socat:latest
+    restart: unless-stopped
+    network_mode: host
+    command: ["TCP-LISTEN:10809,bind=0.0.0.0,fork,reuseaddr", "TCP:127.0.0.1:10808"]
   gateway:
     <<: *runtime
     build: {context: ./backend, args: {SERVICE: gateway}}

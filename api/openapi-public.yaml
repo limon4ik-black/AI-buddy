@@ -12,14 +12,16 @@ paths:
   /api/v1/auth/register:
     post:
       operationId: authRegister
-      summary: register
+      summary: >-
+        Заявка на регистрацию: пароль сохранён в заявке, код уходит на почту.
+        Аккаунт создаётся только после /auth/confirm.
       responses:
         '201':
           description: Успех
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Session'
+                $ref: '#/components/schemas/CodeSent'
         '400':
           description: Некорректный запрос
           content:
@@ -84,14 +86,16 @@ paths:
   /api/v1/auth/login:
     post:
       operationId: authLogin
-      summary: login
+      summary: >-
+        Логин по паролю: отправляет одноразовый код на почту (для заявки
+        регистрации тоже работает).
       responses:
         '200':
           description: Успех
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Session'
+                $ref: '#/components/schemas/CodeSent'
         '400':
           description: Некорректный запрос
           content:
@@ -349,6 +353,169 @@ paths:
                 $ref: '#/components/schemas/Error'
       security:
       - Bearer: []
+  /api/v1/auth/confirm:
+    post:
+      operationId: authConfirm
+      summary: >-
+        Подтверждение кода из письма: завершает регистрацию заявки или вход
+        существующего аккаунта. Сжигает код и открывает сессию.
+      responses:
+        '200':
+          description: Успех
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          description: Код неверный, устарел или запрошен из другого окна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Слишком много попыток
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - code
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+  /api/v1/auth/password/reset:
+    post:
+      operationId: passwordReset
+      summary: >-
+        Отправляет код для смены пароля, если аккаунт существует. Ответ
+        одинаковый в обоих случаях — перебор чужих почт невозможен.
+      responses:
+        '200':
+          description: Успех
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeSent'
+        '400':
+          description: Некорректный email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Слишком много попыток
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+  /api/v1/auth/password/confirm:
+    post:
+      operationId: passwordConfirm
+      summary: >-
+        Смена пароля по коду из письма. Сжигает код, обновляет пароль,
+        отзывает чужие сессии аккаунта и открывает новую сессию.
+      responses:
+        '200':
+          description: Успех
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          description: Код неверный или устарел, либо пароль не соответствует правилам
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Слишком много попыток
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - code
+              - newPassword
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                newPassword:
+                  type: string
+                  minLength: 10
+                  maxLength: 72
+  /api/v1/auth/google/login:
+    get:
+      operationId: googleLoginStart
+      summary: >-
+        Начало входа через Google: state-cookie и редирект на страницу входа
+        Google.
+      responses:
+        '302':
+          description: Редирект на страницу входа Google
+      security: []
+  /api/v1/auth/google/callback:
+    get:
+      operationId: googleLoginCallback
+      summary: >-
+        Приём кода от Google: обмен на профиль, вход или создание аккаунта и
+        редирект на APP_ORIGIN. Google подтверждает почту — заявки не нужны.
+      responses:
+        '302':
+          description: Успех — редирект на фронт с установленной refresh-cookie
+        '400':
+          description: State не совпал либо Google вернул ошибку
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Почта Google не подтверждена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Не удалось связаться с Google
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
   /api/v1/profile:
     get:
       operationId: getProfile
@@ -2563,6 +2730,15 @@ components:
           - 900
         user:
           $ref: '#/components/schemas/Account'
+    CodeSent:
+      type: object
+      additionalProperties: false
+      required:
+      - message
+      properties:
+        message:
+          type: string
+          minLength: 1
     GenerateInput:
       type: object
       additionalProperties: false

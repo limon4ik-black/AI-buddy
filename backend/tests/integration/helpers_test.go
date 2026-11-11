@@ -82,6 +82,9 @@ func database(t *testing.T, name string) *pgxpool.Pool {
 	if name == "info" {
 		updates = append(updates, migrations.InfoMVP)
 	}
+	if name == "auth" {
+		updates = append(updates, migrations.AuthGoogle, migrations.AuthEmail, migrations.AuthPending, migrations.AuthPassword)
+	}
 	db, e := postgres.Open(context.Background(), u.String(), name, map[string][]byte{"auth": migrations.Auth, "info": migrations.Info, "chat": migrations.Chat}[name], updates...)
 	if e != nil {
 		t.Fatal(e)
@@ -166,6 +169,20 @@ func req(t *testing.T, client *http.Client, base, method, path, token string, bo
 		}
 	}
 	return data
+}
+
+func loginSession(t *testing.T, h *harness, email, password string) string {
+	t.Helper()
+	req(t, h.client, h.gateway, "POST", "/api/v1/auth/login", "", obj("email", email, "password", password), 200)
+	mailer, ok := h.auth.Mailer.(*captureMailer)
+	if !ok {
+		t.Fatal("set h.auth.Mailer to a captureMailer to complete the login")
+	}
+	before := len(mailer.bodies)
+	waitForLetter(t, mailer, before+1)
+	codeValue := mailer.lastCode(t)
+	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/confirm", "", obj("code", codeValue), 200)
+	return unpack[struct{ AccessToken string }](t, raw).AccessToken
 }
 
 func unpack[T any](t *testing.T, b []byte) T {
