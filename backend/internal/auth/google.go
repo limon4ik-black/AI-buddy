@@ -95,9 +95,10 @@ func (a *Service) googleCallback(w http.ResponseWriter, r *http.Request) error {
 	return a.session(w, r, userID, profile.Email, 200)
 }
 
-// googleUser resolves the profile to a local account: by google_sub, or a
-// fresh passwordless one. Аккаунт с совпавшим email НЕ линкуется —
-// вход через Google и вход по паролю это разные аккаунты.
+// googleUser resolves the profile to a local account: by google_sub, then by
+// email (attaching Google to the existing account), or a fresh passwordless one.
+// ВАЖНО: их register не подтверждает email — линк по совпадению почты
+// доверяет неподтверждённому адресу (см. TODO).
 func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, error) {
 	email := strings.ToLower(p.Email)
 
@@ -110,9 +111,9 @@ func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, err
 		return "", err
 	}
 
-	err = a.DB.QueryRow(ctx, "SELECT id FROM users WHERE email=$1", email).Scan(&id)
+	err = a.DB.QueryRow(ctx, "UPDATE users SET google_sub=$1 WHERE email=$2 RETURNING id", p.Sub, email).Scan(&id)
 	if err == nil {
-		return "", httpapi.Problem(409, "email_taken", "Аккаунт с этой почтой уже зарегистрирован — войдите по паролю")
+		return id, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return "", err

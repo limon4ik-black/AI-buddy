@@ -83,26 +83,14 @@ func TestGoogleAuthCreatesAccounts(t *testing.T) {
 		t.Fatalf("same sub produced different users: %v vs %v", again["user"], user)
 	}
 
-	// Тот же email с другим Google-аккаунтом: отказ — аккаунты не сливаются.
+	// Тот же email с другим Google-аккаунтом: привязка к существующему юзеру.
 	conf2, fakeURL2 := fakeGoogle(t, "google-sub-2", "google@example.test")
 	conf2.RedirectURL = server.URL + "/api/v1/auth/google/callback"
 	h.auth.Google = conf2
 	h.auth.GoogleUserInfo = fakeURL2 + "/userinfo"
-	resp2, err := h.client.Get(server.URL + "/api/v1/auth/google/login")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp2.Body.Close()
-	if resp2.StatusCode != http.StatusConflict {
-		t.Fatalf("expected 409 for taken email, got %d", resp2.StatusCode)
-	}
-	var problem struct {
-		Error struct {
-			Code string `json:"code"`
-		} `json:"error"`
-	}
-	if err := json.NewDecoder(resp2.Body).Decode(&problem); err != nil || problem.Error.Code != "email_taken" {
-		t.Fatalf("expected email_taken problem, got %v %v", err, problem)
+	linked := googleLogin(t, h.client, server.URL)
+	if linked["user"].(map[string]any)["id"] != user["id"] {
+		t.Fatalf("email link failed: %v", linked["user"])
 	}
 
 	// Выданный access-токен работает на /me.
