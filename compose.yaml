@@ -43,6 +43,16 @@ services:
       DATABASE_URL: postgres://auth_user:${AUTH_DB_PASSWORD}@postgres:5432/auth_db?sslmode=disable
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       SEED_DEMO: ${SEED_DEMO:-true}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on: {postgres: {condition: service_healthy}}
   info:
     <<: *runtime
