@@ -32,7 +32,6 @@ func googleEnv() (id, secret, redirect string) {
 	return config.Env("GOOGLE_CLIENT_ID", ""), config.Env("GOOGLE_CLIENT_SECRET", ""), config.Env("GOOGLE_REDIRECT_URL", "")
 }
 
-// googleConf builds the OAuth config from environment; nil means disabled.
 func googleConf() *oauth2.Config {
 	id, secret, redirect := googleEnv()
 	if id == "" || secret == "" || redirect == "" {
@@ -56,8 +55,6 @@ func (a *Service) googleLogin(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	state := base64.RawURLEncoding.EncodeToString(buf)
-	// SameSite=Lax: state-cookie должна доехать обратно через редирект с Google,
-	// Strict- cookie при таком переходе браузер не отправит.
 	http.SetCookie(w, &http.Cookie{
 		Name: "buddy_oauth_state", Value: state, Path: "/api/v1/auth/google", MaxAge: 300,
 		HttpOnly: true, Secure: a.SecureCookie, SameSite: http.SameSiteLaxMode,
@@ -96,16 +93,11 @@ func (a *Service) googleCallback(w http.ResponseWriter, r *http.Request) error {
 	if err = a.startSession(w, r, userID); err != nil {
 		return err
 	}
-	// Фронт при загрузке сам делает cookie-refresh и входит без токена в URL.
 	origin := strings.TrimRight(config.Env("APP_ORIGIN", "http://localhost:8080"), "/")
 	http.Redirect(w, r, origin+"/", http.StatusFound)
 	return nil
 }
 
-// googleUser resolves the profile to a local account: by google_sub, then by
-// email (attaching Google to the existing account), or a fresh passwordless one.
-// ВАЖНО: их register не подтверждает email — линк по совпадению почты
-// доверяет неподтверждённому адресу (см. TODO).
 func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, error) {
 	email := strings.ToLower(p.Email)
 
@@ -126,7 +118,6 @@ func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, err
 		return "", err
 	}
 	if !p.EmailVerified {
-		// Линковка только по подтвержденной гуглом почте.
 		return "", httpapi.Problem(409, "email_unverified", "Подтвердите email в аккаунте Google и войдите снова")
 	}
 

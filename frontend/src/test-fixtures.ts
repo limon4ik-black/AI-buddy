@@ -134,6 +134,7 @@ export function initialChecklist(): Checklist {
 export type MockState = {
   resume: boolean;
   email: string;
+  loginCode: string;
   fail: string;
   generateFails: boolean;
   actionFails: boolean;
@@ -148,6 +149,7 @@ export function mockState(): MockState {
   return {
     resume: false,
     email: testPeople[0].email,
+    loginCode: "",
     fail: "",
     generateFails: false,
     actionFails: false,
@@ -188,8 +190,19 @@ export function fakeFetch(state: MockState) {
           401,
         );
       state.email = body.email;
+      state.loginCode = "123456";
+      return response({
+        message: "Код для входа отправлен на " + body.email,
+      });
+    }
+    if (path === "/auth/confirm") {
+      if (body.code !== state.loginCode)
+        return response(
+          { error: { message: "Код неверный или устарел" } },
+          400,
+        );
       state.resume = true;
-      return response({ accessToken: "test-token" });
+      return response({ accessToken: "test-token", expiresIn: 900 });
     }
     if (path === "/auth/logout") {
       state.resume = false;

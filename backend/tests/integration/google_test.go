@@ -11,8 +11,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// fakeGoogle mimics the Google OAuth endpoints (authorize, token, userinfo).
-// Returns the OAuth config and the fake server base URL.
 func fakeGoogle(t *testing.T, sub, email string) (*oauth2.Config, string) {
 	t.Helper()
 	mux := http.NewServeMux()
@@ -36,16 +34,12 @@ func fakeGoogle(t *testing.T, sub, email string) (*oauth2.Config, string) {
 	}, srv.URL
 }
 
-// googleLogin performs the full OAuth round trip through the local fake Google.
-// The callback redirects to the frontend, so redirects are stopped and the
-// 302 response is returned; the session cookie lands in the client's jar.
 func googleLogin(t *testing.T, client *http.Client, base string) *http.Response {
 	t.Helper()
 	nr := &http.Client{
 		Jar:     client.Jar,
 		Timeout: client.Timeout,
 		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
-			// Останавливаемся только на редиректе колбэка во фронт (корень без query).
 			if req.URL.Path == "/" && req.URL.RawQuery == "" {
 				return http.ErrUseLastResponse
 			}
@@ -59,7 +53,6 @@ func googleLogin(t *testing.T, client *http.Client, base string) *http.Response 
 	return resp
 }
 
-// refreshAccessToken exchanges the session cookie for a fresh access token.
 func refreshAccessToken(t *testing.T, client *http.Client, base string) string {
 	t.Helper()
 	raw := req(t, client, base, "POST", "/api/v1/auth/refresh", "", nil, 200)
@@ -72,7 +65,6 @@ func refreshAccessToken(t *testing.T, client *http.Client, base string) string {
 	return out.AccessToken
 }
 
-// meUserID returns the user id from /me for the given access token.
 func meUserID(t *testing.T, client *http.Client, base, access string) string {
 	t.Helper()
 	raw := req(t, client, base, "GET", "/api/v1/auth/me", access, nil, 200)
@@ -94,7 +86,6 @@ func TestGoogleAuthCreatesAccounts(t *testing.T) {
 	h.auth.Google = conf
 	h.auth.GoogleUserInfo = fakeURL + "/userinfo"
 
-	// Первый вход: 302 на фронт + сессия в cookie.
 	first := googleLogin(t, h.client, server.URL)
 	defer first.Body.Close()
 	if first.StatusCode != http.StatusFound {
@@ -117,7 +108,6 @@ func TestGoogleAuthCreatesAccounts(t *testing.T) {
 		t.Fatalf("/me mismatch: body %s", me)
 	}
 
-	// Тот же Google-аккаунт повторно: тот же user_id.
 	again := googleLogin(t, h.client, server.URL)
 	again.Body.Close()
 	if again.StatusCode != http.StatusFound {
@@ -127,7 +117,6 @@ func TestGoogleAuthCreatesAccounts(t *testing.T) {
 		t.Fatalf("same sub produced different users: %s vs %s", againID, userID)
 	}
 
-	// Тот же email с другим Google-аккаунтом: привязка к существующему юзеру.
 	conf2, fakeURL2 := fakeGoogle(t, "google-sub-2", "google@example.test")
 	conf2.RedirectURL = server.URL + "/api/v1/auth/google/callback"
 	h.auth.Google = conf2

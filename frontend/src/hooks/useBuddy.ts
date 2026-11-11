@@ -24,7 +24,8 @@ export function useBuddy() {
     [booting, setBooting] = useState(true),
     [authBusy, setAuthBusy] = useState(false),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [codeSent, setCodeSent] = useState(false);
   const [view, setView] = useState<View>("chat"),
     [chatId, setChatId] = useState<string | null>(null),
     [messages, setMessages] = useState<Message[]>([]),
@@ -134,10 +135,26 @@ export function useBuddy() {
         "POST",
         { email, password },
       );
+      setCodeSent(true);
       setNotice(
         res?.message ||
-          "Ссылка для входа отправлена на " + email + ". Проверь почту.",
+          "Код для входа отправлен на " + email + ". Проверь почту.",
       );
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+  async function confirmCode(code: string) {
+    setAuthBusy(true);
+    setError("");
+    try {
+      await api.request("/auth/confirm", "POST", { code });
+      setCodeSent(false);
+      setNotice("");
+      epoch.current++;
+      await loadWorkspace();
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -396,6 +413,8 @@ export function useBuddy() {
     authBusy,
     error,
     notice,
+    codeSent,
+    confirmCode,
     view,
     chatId,
     messages,

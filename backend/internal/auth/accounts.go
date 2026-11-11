@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 
 	"github.com/limon4ik-black/AI-buddy/backend/internal/demodata"
@@ -27,11 +26,8 @@ func (a *Service) register(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	if e = a.sendLoginLink(r.Context(), id, c.Email); e != nil {
-		// Письмо не уехало - не мешаем регистрации, юзер перезапросит по логину.
-		slog.Warn("login link email failed", "error", e)
-	}
-	httpapi.JSON(w, http.StatusCreated, map[string]any{"message": "Ссылка для входа отправлена на " + c.Email})
+	a.sendLoginCodeAsync(w, r, id, c.Email)
+	httpapi.JSON(w, http.StatusCreated, map[string]any{"message": "Код для входа отправлен на " + c.Email})
 	return nil
 }
 
@@ -44,14 +40,11 @@ func (a *Service) login(w http.ResponseWriter, r *http.Request) error {
 	if e != nil || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(c.Password)) != nil {
 		return httpapi.Problem(401, "invalid_credentials", "Неверный email или пароль")
 	}
-	if e = a.sendLoginLink(r.Context(), u.ID, u.Email); e != nil {
-		return e
-	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"message": "Ссылка для входа отправлена на " + u.Email})
+	a.sendLoginCodeAsync(w, r, u.ID, u.Email)
+	httpapi.JSON(w, http.StatusOK, map[string]any{"message": "Код для входа отправлен на " + u.Email})
 	return nil
 }
 
-// SeedDemo creates synthetic test accounts without replacing existing passwords.
 func (a *Service) SeedDemo(ctx context.Context) error {
 	for _, intern := range demodata.Interns() {
 		password := demodata.Password

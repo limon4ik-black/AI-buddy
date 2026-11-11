@@ -45,7 +45,9 @@ export function App() {
         busy={buddy.authBusy}
         error={buddy.error}
         notice={buddy.notice}
+        codeSent={buddy.codeSent}
         onLogin={buddy.login}
+        onConfirm={buddy.confirmCode}
       />
     );
   function openSource(source: Source) {

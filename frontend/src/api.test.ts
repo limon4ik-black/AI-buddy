@@ -60,9 +60,9 @@ describe("API transport", () => {
         { "Idempotency-Key": "abc" },
       ),
     ).toBeUndefined();
-    f.mockResolvedValueOnce(response({ accessToken: "login" }));
+    f.mockResolvedValueOnce(response({ message: "Код отправлен" }));
     await api.request("/auth/login", "POST");
-    expect(api.token).toBe("login");
+    expect(api.token).toBe("");
   });
   it("loads every page without losing message order", async () => {
     vi.spyOn(globalThis, "fetch")

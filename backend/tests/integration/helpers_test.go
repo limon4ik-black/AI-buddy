@@ -171,8 +171,6 @@ func req(t *testing.T, client *http.Client, base, method, path, token string, bo
 	return data
 }
 
-// loginSession performs the full password login: link from the letter ->
-// confirm -> cookie refresh. Requires h.auth.Mailer to be a *captureMailer.
 func loginSession(t *testing.T, h *harness, email, password string) string {
 	t.Helper()
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/login", "", obj("email", email, "password", password), 200)
@@ -180,16 +178,10 @@ func loginSession(t *testing.T, h *harness, email, password string) string {
 	if !ok {
 		t.Fatal("set h.auth.Mailer to a captureMailer to complete the login")
 	}
-	link := mailer.lastToken(t)
-	resp, e := noRedirectAtRoot(h.client).Get(h.gateway + "/api/v1/auth/confirm?token=" + link)
-	if e != nil {
-		t.Fatal(e)
-	}
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusFound {
-		t.Fatalf("confirm status: %d", resp.StatusCode)
-	}
-	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/refresh", "", nil, 200)
+	before := len(mailer.bodies)
+	waitForLetter(t, mailer, before+1)
+	codeValue := mailer.lastCode(t)
+	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/confirm", "", obj("code", codeValue), 200)
 	return unpack[struct{ AccessToken string }](t, raw).AccessToken
 }
 

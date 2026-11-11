@@ -6,41 +6,45 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/limon4ik-black/AI-buddy/backend/internal/platform/idgen"
 )
 
-// captureMailer stores letter bodies instead of sending them.
 type captureMailer struct {
 	bodies []string
 }
 
-func (m *captureMailer) Send(to, subject, body string) error {
-	m.bodies = append(m.bodies, body)
+func (m *captureMailer) Send(to, subject, text, _ string) error {
+	m.bodies = append(m.bodies, text)
 	return nil
 }
 
-// lastToken extracts the login token from the last sent letter.
-func (m *captureMailer) lastToken(t *testing.T) string {
+func waitForLetter(t *testing.T, m *captureMailer, want int) {
+	t.Helper()
+	for i := 0; i < 100; i++ {
+		if len(m.bodies) >= want {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("letters not delivered: have %d, want %d", len(m.bodies), want)
+}
+
+func (m *captureMailer) lastCode(t *testing.T) string {
 	t.Helper()
 	if len(m.bodies) == 0 {
 		t.Fatal("no login letters sent")
 	}
 	line := m.bodies[len(m.bodies)-1]
-	const marker = "token="
+	const marker = "Код для входа в AI-buddy: "
 	i := strings.Index(line, marker)
 	if i < 0 {
-		t.Fatalf("no token in letter: %s", line)
+		t.Fatalf("no code in letter: %s", line)
 	}
-	token := line[i+len(marker):]
-	if j := strings.IndexAny(token, "\r\n \t"); j >= 0 {
-		token = token[:j]
-	}
-	return token
+	return line[i+len(marker):][:6]
 }
 
-// noRedirectAtRoot follows redirects but stops on the final redirect to the
-// frontend root made by the confirmation endpoint.
 func noRedirectAtRoot(client *http.Client) *http.Client {
 	return &http.Client{
 		Jar:     client.Jar,
@@ -63,11 +67,11 @@ func TestEmailLoginFlow(t *testing.T) {
 
 	email := "verify-" + idgen.New() + "@example.test"
 	register(t, h.client, srv.URL, email, "StrongPassword123!")
+	waitForLetter(t, mailer, 1)
 	if len(mailer.bodies) != 1 {
 		t.Fatalf("register should send exactly one letter, got %d", len(mailer.bodies))
 	}
 
-	// Неверный пароль: 401, письмо не отправляется.
 	wrong := post(t, h.client, srv.URL, "/api/v1/auth/login", "", map[string]string{"email": email, "password": "WrongPassword123!"}, 401)
 	if code(wrong) != "invalid_credentials" {
 		t.Fatalf("expected invalid_credentials, got %v", wrong)
@@ -76,38 +80,32 @@ func TestEmailLoginFlow(t *testing.T) {
 		t.Fatalf("wrong password must not send letters, got %d", len(mailer.bodies))
 	}
 
-	// Верный пароль: 200 + письмо со ссылкой; сессии пока нет.
 	post(t, h.client, srv.URL, "/api/v1/auth/login", "", map[string]string{"email": email, "password": "StrongPassword123!"}, 200)
-	token := mailer.lastToken(t)
+	waitForLetter(t, mailer, 2)
+	codeValue := mailer.lastCode(t)
+	req(t, h.client, srv.URL, "POST", "/api/v1/auth/refresh", "", nil, 401)
 
-	// До перехода по ссылке cookie-сессии нет: refresh 401.
-	req(t, noRedirectAtRoot(h.client), srv.URL, "POST", "/api/v1/auth/refresh", "", nil, 401)
-
-	// Переход по ссылке: 302 на фронт, cookie-сессия выдана.
-	resp, err := noRedirectAtRoot(h.client).Get(srv.URL + "/api/v1/auth/confirm?token=" + token)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusFound {
-		t.Fatalf("confirm status: %d", resp.StatusCode)
+	bad := post(t, h.client, srv.URL, "/api/v1/auth/confirm", "", map[string]string{"code": "000000"}, 400)
+	if code(bad) != "invalid_code" {
+		t.Fatalf("expected invalid_code, got %v", bad)
 	}
 
-	// Повторное использование токена: 400.
-	resp2, err := noRedirectAtRoot(h.client).Get(srv.URL + "/api/v1/auth/confirm?token=" + token)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp2.Body.Close()
-	if resp2.StatusCode != http.StatusBadRequest {
-		t.Fatalf("token reuse status: %d", resp2.StatusCode)
+	alien := post(t, &http.Client{}, srv.URL, "/api/v1/auth/confirm", "", map[string]string{"code": codeValue}, 400)
+	if code(alien) != "no_pending_login" {
+		t.Fatalf("expected no_pending_login for foreign window, got %v", alien)
 	}
 
-	// Сессия жива: refresh выдает accessToken, /me отвечает.
-	access := refreshAccessToken(t, h.client, srv.URL)
+	ok := post(t, h.client, srv.URL, "/api/v1/auth/confirm", "", map[string]string{"code": codeValue}, 200)
+	access, has := ok["accessToken"].(string)
+	if !has || access == "" {
+		t.Fatalf("no accessToken after confirm: %v (sent code %q, letters %q)", ok, codeValue, mailer.bodies)
+	}
 	if id := meUserID(t, h.client, srv.URL, access); id == "" {
 		t.Fatal("empty user id from /me")
 	}
+	refreshAccessToken(t, h.client, srv.URL)
+
+	req(t, &http.Client{}, srv.URL, "POST", "/api/v1/auth/confirm", "", map[string]string{"code": "123456"}, 400)
 }
 
 func register(t *testing.T, client *http.Client, base, email, password string) {

@@ -567,14 +567,40 @@ button {
   height: 1px;
   background: #c9ccd4;
 }
-.auth-card .text-button.google-button {
+.auth-card .google-button {
   width: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  margin-top: 8px;
-  font-size: 12px;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 15px 16px;
+  background: #fff;
   border: 1px solid #d5d8de;
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #171717;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.auth-card .google-button:hover:not(:disabled) {
+  background: #f4f6f8;
+}
+.auth-card .google-button:disabled {
+  opacity: 0.6;
+}
+.auth-card .google-button svg {
+  width: 20px;
+  height: 20px;
+}
+.auth-card .code-input {
+  width: 100%;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-align: center;
+  padding: 12px;
 }
 .auth-footnote {
   font-size: 9px;

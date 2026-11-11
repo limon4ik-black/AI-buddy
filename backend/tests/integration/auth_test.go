@@ -15,22 +15,14 @@ func TestAuthLifecycle(t *testing.T) {
 	for _, data := range []any{obj("email", "bad", "password", "long-password"), obj("email", "a@example.test", "password", "short"), obj("email", "Name <a@example.test>", "password", "long-password"), obj("extra", true)} {
 		req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 400)
 	}
-	// Вход подтверждается ссылкой из письма: регистрация сессию не открывает.
 	mailer := &captureMailer{}
 	h.auth.Mailer = mailer
 	data := obj("email", "NEW@example.test", "password", "LongPassword123!")
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 201)
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 409)
-	link := mailer.lastToken(t)
-	confirmResp, e := noRedirectAtRoot(h.client).Get(h.gateway + "/api/v1/auth/confirm?token=" + link)
-	if e != nil {
-		t.Fatal(e)
-	}
-	confirmResp.Body.Close()
-	if confirmResp.StatusCode != http.StatusFound {
-		t.Fatalf("confirm status: %d", confirmResp.StatusCode)
-	}
-	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/refresh", "", nil, 200)
+	waitForLetter(t, mailer, 1)
+	codeValue := mailer.lastCode(t)
+	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/confirm", "", obj("code", codeValue), 200)
 	token := unpack[struct{ AccessToken string }](t, raw).AccessToken
 	req(t, h.client, h.gateway, "GET", "/api/v1/auth/me", token, nil, 200)
 	u, _ := url.Parse(h.gateway + "/api/v1/auth/refresh")
@@ -44,18 +36,11 @@ func TestAuthLifecycle(t *testing.T) {
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/logout", "", nil, 204)
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/logout", "", nil, 204)
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/refresh", "", nil, 401)
-	// Повторный вход: снова ссылка, снова подтверждение, снова сессия.
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/login", "", data, 200)
-	link = mailer.lastToken(t)
-	confirmResp, e = noRedirectAtRoot(h.client).Get(h.gateway + "/api/v1/auth/confirm?token=" + link)
-	if e != nil {
-		t.Fatal(e)
-	}
-	confirmResp.Body.Close()
-	if confirmResp.StatusCode != http.StatusFound {
-		t.Fatalf("re-login confirm status: %d", confirmResp.StatusCode)
-	}
-	// Exactly one caller can consume a refresh token, even with concurrent delivery.
+	waitForLetter(t, mailer, 2)
+	codeValue = mailer.lastCode(t)
+	raw = req(t, h.client, h.gateway, "POST", "/api/v1/auth/confirm", "", obj("code", codeValue), 200)
+	token = unpack[struct{ AccessToken string }](t, raw).AccessToken
 	cookies := h.client.Jar.Cookies(u)
 	var wg sync.WaitGroup
 	statuses := make(chan int, 2)
