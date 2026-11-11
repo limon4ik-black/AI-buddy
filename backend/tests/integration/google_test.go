@@ -25,7 +25,7 @@ func fakeGoogle(t *testing.T, sub, email string) (*oauth2.Config, string) {
 	})
 	mux.HandleFunc("/userinfo", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"sub": sub, "email": email, "name": "Google Tester"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"sub": sub, "email": email, "name": "Google Tester", "email_verified": true})
 	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)

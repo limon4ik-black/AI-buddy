@@ -112,12 +112,16 @@ func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, err
 		return "", err
 	}
 
-	err = a.DB.QueryRow(ctx, "UPDATE users SET google_sub=$1 WHERE email=$2 RETURNING id", p.Sub, email).Scan(&id)
+	err = a.DB.QueryRow(ctx, "UPDATE users SET google_sub=$1, email_verified=true WHERE email=$2 RETURNING id", p.Sub, email).Scan(&id)
 	if err == nil {
 		return id, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return "", err
+	}
+	if !p.EmailVerified {
+		// Линковка только по подтвержденной гуглом почте.
+		return "", httpapi.Problem(409, "email_unverified", "Подтвердите email в аккаунте Google и войдите снова")
 	}
 
 	uid := idgen.New()
