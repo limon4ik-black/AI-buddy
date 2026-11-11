@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"github.com/limon4ik-black/AI-buddy/backend/internal/platform/config"
 )
@@ -34,10 +37,68 @@ type SMTPMailer struct {
 	host, port, user, pass, from string
 }
 
+// Send dials IPv4 explicitly: gmail answers AAAA records too, and in networks
+// without a working IPv6 route the v6 attempt fails before v4 is tried.
 func (m SMTPMailer) Send(to, subject, body string) error {
-	addr := m.host + ":" + m.port
-	auth := smtp.PlainAuth("", m.user, m.pass, m.host)
-	return smtp.SendMail(addr, auth, m.from, []string{to}, buildMessage(m.from, to, subject, body))
+	conn, err := m.dial()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	c, err := smtp.NewClient(conn, m.host)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err = c.StartTLS(&tls.Config{ServerName: m.host}); err != nil {
+			return err
+		}
+	}
+	if m.user != "" {
+		if err = c.Auth(smtp.PlainAuth("", m.user, m.pass, m.host)); err != nil {
+			return err
+		}
+	}
+	if err = c.Mail(m.from); err != nil {
+		return err
+	}
+	if err = c.Rcpt(to); err != nil {
+		return err
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err = w.Write(buildMessage(m.from, to, subject, body)); err != nil {
+		return err
+	}
+	if err = w.Close(); err != nil {
+		return err
+	}
+	return c.Quit()
+}
+
+func (m SMTPMailer) dial() (net.Conn, error) {
+	if ips, err := net.LookupIP(m.host); err == nil {
+		var last error
+		for _, ip := range ips {
+			if v4 := ip.To4(); v4 == nil {
+				continue
+			}
+			d := net.Dialer{Timeout: 15 * time.Second}
+			conn, err := d.Dial("tcp", net.JoinHostPort(ip.String(), m.port))
+			if err == nil {
+				return conn, nil
+			}
+			last = err
+		}
+		if last != nil {
+			return nil, last
+		}
+	}
+	return net.DialTimeout("tcp", net.JoinHostPort(m.host, m.port), 15*time.Second)
 }
 
 type LogMailer struct{}
