@@ -1,62 +1,21 @@
-# TODO (auth-слайс)
+# TODO (auth)
 
-## 1. Cookie oauth_state: Secure + домен
+## Сделано при интеграции (не требует действий)
 
-Где: `internal/feature/auth/login/handler.go`, метод `Login`:
+- state-cookie и refresh-cookie используют `SecureCookie` из env (`COOKIE_SECURE=true` на проде) — Secure-флаг решается конфигом, хардкода нет.
+- Ключи JWT персистентные: `JWT_PRIVATE_SEED`/`JWT_PUBLIC_KEY` из env, рестарты ничего не ломают.
+- Ротация refresh-токенов атомарная (consume-and-replace в транзакции) — повторное использование старого токена не проходит.
+- Rate limit (их `limited`) применяется и к Google-ручкам.
 
-```go
-c.SetCookie("oauth_state", state, 300, "/", "", false, true)
-```
+## Открытые вопросы
 
-Последние два аргумента: `secure` (сейчас `false`), `domain` (сейчас `""`).
-На проде, где сервер за HTTPS, поставить `secure = true` и домен сайта:
+- **Привязка по email без верификации**: `googleUser` линкует Google-аккаунт к существующему юзеру по совпадению email, но `register` не подтверждает почту. Потенциальный вектор: заранее создать аккаунт на чужую почту. Варианты: хранить `email_verified` из Google и линковать только подтверждённые, либо требовать пароль при линке.
+- **Google-юзеры без пароля**: `password_hash` теперь nullable; для таких юзеров вход по паролю невозможен (это ок), но UI не должен показывать «сменить пароль».
+- **Роль**: `role="intern"` захардкожен в `security.Keys.Sign` и обязателен в `Verify`. Пока все интерны — работает; при появлении второй роли сломается вся выдача. Выносить роль в БД.
+- Демо-сид: `demodata` с хардкод-паролями — отключать на проде (`SEED_DEMO=false`).
+- Проверить флоу вживую через гейтвей (frontend AuthScreen): redirect после Google-колбэка сейчас отдаёт JSON с accessToken — возможно, стоит редиректить на фронт с постановкой cookie.
 
-```go
-c.SetCookie("oauth_state", state, 300, "/", "мой-домен.ru", true, true)
-```
+## Среда разработки
 
-- `Secure:true` — cookie уходит только по HTTPS, state (половина защиты от CSRF)
-  не светится в открытом трафике. Локально с `false`, т.к. localhost работает
-  по голому http и браузер не примет Secure-cookie.
-- домен — ограничить, каким хостам браузер отдаёт cookie.
-
-## 2. Как подключить ручки в приложении
-
-Зависимости auth-слайса собираются один раз, каждая фича регистрирует свои
-роуты сама через `.Register(r gin.IRouter)`:
-
-```go
-import (
-    "github.com/redis/go-redis/v9"
-    "github.com/limon4ik-black/AI-buddy/internal/feature/auth"
-    "github.com/limon4ik-black/AI-buddy/internal/feature/auth/login"
-    "github.com/limon4ik-black/AI-buddy/internal/feature/auth/logout"
-    "github.com/limon4ik-black/AI-buddy/internal/feature/auth/refresh"
-)
-
-// зависимости
-priv := ...                                        // ed25519.PrivateKey (кто подписывает access-JWT)
-issuer := auth.NewTokenIssuer(priv)
-rdb := redis.NewClient(&redis.Options{Addr: "localhost:6379"}) // из REDIS_ADDR
-refreshStore := auth.NewRedisRefreshStore(rdb)     // refresh-токены, TTL 7 дней
-users := auth.NewRedisUserStore(rdb)               // provider+sub -> user_id
-
-// регистрации (каждый пакет вешает свои ручки сам)
-conf := login.NewGoogleConf(clientID, clientSecret, redirectURL) // из .env
-login.NewHandler(conf, login.NewService(conf, users, issuer, refreshStore)).Register(r)
-refresh.NewHandler(refresh.NewService(issuer, refreshStore)).Register(r)
-logout.NewHandler(logout.NewService(refreshStore)).Register(r)
-
-// защита любых ручек
-r.GET("/что-то", middleware.AuthMiddleware(pub), handler)
-```
-
-Роуты, которые появятся:
-    GET  /auth/google/login     редирект на Google + state в cookie
-    GET  /auth/google/callback  обмен code, выдача пары токенов
-    POST /auth/refresh          ротация пары по refresh-токену
-    POST /auth/logout           удаление refresh-токена
-
-Нужные переменные окружения (см. .env.example): GOOGLE_CLIENT_ID,
-GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL (посимвольно как в Google Cloud
-Console), REDIS_ADDR, HTTPS_PROXY (локальный socks5 для исходящих к Google).
+- Исходящие запросы к Google требуют прокси: `HTTPS_PROXY=socks5://127.0.0.1:10808` в .env (без него exchange/userinfo висят по таймауту).
+- Интеграционные тесты: `TEST_DB_ADMIN_URL` + `bash scripts/test-backend.sh`, либо временный Postgres в Docker.
