@@ -14,6 +14,7 @@ import (
 
 func TestMVPDemoTeams(t *testing.T) {
 	h := setup(t)
+	h.auth.Mailer = &captureMailer{}
 	if err := h.info.SeedDemo(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -24,8 +25,7 @@ func TestMVPDemoTeams(t *testing.T) {
 			continue
 		}
 		t.Run(u.TeamID+"/"+u.ID, func(t *testing.T) {
-			session := unpack[struct{ AccessToken string }](t, req(t, h.client, h.gateway, "POST", "/api/v1/auth/login", "", obj("email", u.Email, "password", demodata.Password), 200))
-			token := session.AccessToken
+			token := loginSession(t, h, u.Email, demodata.Password)
 			tokens[u.ID] = token
 			profile := unpack[contracts.Profile](t, req(t, h.client, h.gateway, "GET", "/api/v1/profile", token, nil, 200))
 			if profile.UserID != u.ID || profile.TeamID != u.TeamID || profile.FullName != u.FullName {

@@ -44,6 +44,7 @@ export function App() {
       <AuthScreen
         busy={buddy.authBusy}
         error={buddy.error}
+        notice={buddy.notice}
         onLogin={buddy.login}
       />
     );

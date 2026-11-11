@@ -602,6 +602,15 @@ button {
   font-size: 11px;
   line-height: 1.7;
 }
+.inline-notice {
+  color: #4d7f1f;
+  background: #f2f8e8;
+  border: 1px solid #d9ecca;
+  border-radius: 9px;
+  padding: 11px 12px;
+  font-size: 11px;
+  line-height: 1.7;
+}
 .app-shell {
   height: 100dvh;
   overflow: hidden;

@@ -118,7 +118,7 @@ func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, err
 		return "", err
 	}
 
-	err = a.DB.QueryRow(ctx, "UPDATE users SET google_sub=$1, email_verified=true WHERE email=$2 RETURNING id", p.Sub, email).Scan(&id)
+	err = a.DB.QueryRow(ctx, "UPDATE users SET google_sub=$1 WHERE email=$2 RETURNING id", p.Sub, email).Scan(&id)
 	if err == nil {
 		return id, nil
 	}
@@ -131,8 +131,7 @@ func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, err
 	}
 
 	uid := idgen.New()
-	// Google подтверждает почту сам: созданный юзер сразу verified.
-	if _, err = a.DB.Exec(ctx, "INSERT INTO users(id,email,google_sub,email_verified) VALUES($1,$2,$3,$4)", uid, email, p.Sub, p.EmailVerified); err != nil {
+	if _, err = a.DB.Exec(ctx, "INSERT INTO users(id,email,google_sub) VALUES($1,$2,$3)", uid, email, p.Sub); err != nil {
 		return "", fmt.Errorf("insert google user: %w", err)
 	}
 	return uid, nil

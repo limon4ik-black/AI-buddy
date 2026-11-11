@@ -127,13 +127,17 @@ export function useBuddy() {
   async function login(email: string, password: string, register = false) {
     setAuthBusy(true);
     setError("");
+    setNotice("");
     try {
-      await api.request("/auth/" + (register ? "register" : "login"), "POST", {
-        email,
-        password,
-      });
-      epoch.current++;
-      await loadWorkspace();
+      const res = await api.request<{ message?: string }>(
+        "/auth/" + (register ? "register" : "login"),
+        "POST",
+        { email, password },
+      );
+      setNotice(
+        res?.message ||
+          "Ссылка для входа отправлена на " + email + ". Проверь почту.",
+      );
     } catch (e) {
       setError(errorText(e));
     } finally {

@@ -10,10 +10,12 @@ import {
 export function AuthScreen({
   busy,
   error,
+  notice,
   onLogin,
 }: {
   busy: boolean;
   error: string;
+  notice: string;
   onLogin: (
     email: string,
     password: string,
@@ -147,6 +149,11 @@ export function AuthScreen({
               <div className="inline-error" role="alert">
                 <Icon name="shield" size={18} />
                 {error}
+              </div>
+            )}
+            {notice && (
+              <div className="inline-notice" role="status">
+                {notice}
               </div>
             )}
             <button className="primary-button full-width" disabled={busy}>

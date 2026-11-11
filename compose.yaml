@@ -93,6 +93,13 @@ services:
     <<: *runtime
     build: {context: ./backend, args: {SERVICE: corpmock}}
     environment: {PORT: 8085, LISTEN_ADDR: ':8085', CORP_SERVICE_TOKEN: '${CORP_SERVICE_TOKEN}'}
+  # TCP relay into the host loopback proxy (xray on 127.0.0.1:10808):
+  # containers cannot reach the host's 127.0.0.1 directly.
+  proxy-relay:
+    image: alpine/socat:latest
+    restart: unless-stopped
+    network_mode: host
+    command: ["TCP-LISTEN:10809,bind=0.0.0.0,fork,reuseaddr", "TCP:127.0.0.1:10808"]
   gateway:
     <<: *runtime
     build: {context: ./backend, args: {SERVICE: gateway}}

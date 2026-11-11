@@ -61,8 +61,9 @@ func buildMessage(from, to, subject, body string) []byte {
 	return []byte(msg)
 }
 
-// confirmationLinkText builds the plain-text letter body with the link.
-func confirmationLinkText(origin, token string) string {
-	return fmt.Sprintf("Подтвердите почту, перейдя по ссылке: %s/api/v1/auth/confirm?token=%s\n"+
-		"Ссылка действует 24 часа.", strings.TrimRight(origin, "/"), token)
+// loginLinkText builds the plain-text letter body with the link.
+func loginLinkText(origin, token string) string {
+	return fmt.Sprintf("Войти в AI-buddy: %s/api/v1/auth/confirm?token=%s\n"+
+		"Ссылка действует 15 минут и одноразовая. Если вход не ты — просто игнорируй письмо.",
+		strings.TrimRight(origin, "/"), token)
 }

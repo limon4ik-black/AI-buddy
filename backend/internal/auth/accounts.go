@@ -27,11 +27,12 @@ func (a *Service) register(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	if e = a.sendConfirmation(r.Context(), id, c.Email); e != nil {
+	if e = a.sendLoginLink(r.Context(), id, c.Email); e != nil {
 		// Письмо не уехало - не мешаем регистрации, юзер перезапросит по логину.
-		slog.Warn("confirmation email failed", "error", e)
+		slog.Warn("login link email failed", "error", e)
 	}
-	return a.session(w, r, id, c.Email, 201)
+	httpapi.JSON(w, http.StatusCreated, map[string]any{"message": "Ссылка для входа отправлена на " + c.Email})
+	return nil
 }
 
 func (a *Service) login(w http.ResponseWriter, r *http.Request) error {
@@ -39,17 +40,15 @@ func (a *Service) login(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	u, e := postgres.One[Account](r.Context(), a.DB, "SELECT id,email,password_hash,email_verified FROM users WHERE email=$1", c.Email)
+	u, e := postgres.One[Account](r.Context(), a.DB, "SELECT id,email,password_hash FROM users WHERE email=$1", c.Email)
 	if e != nil || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(c.Password)) != nil {
 		return httpapi.Problem(401, "invalid_credentials", "Неверный email или пароль")
 	}
-	if !u.EmailVerified {
-		if e = a.sendConfirmation(r.Context(), u.ID, u.Email); e != nil {
-			return e
-		}
-		return httpapi.Problem(403, "email_not_verified", "Подтвердите почту — ссылка отправлена повторно")
+	if e = a.sendLoginLink(r.Context(), u.ID, u.Email); e != nil {
+		return e
 	}
-	return a.session(w, r, u.ID, u.Email, 200)
+	httpapi.JSON(w, http.StatusOK, map[string]any{"message": "Ссылка для входа отправлена на " + u.Email})
+	return nil
 }
 
 // SeedDemo creates synthetic test accounts without replacing existing passwords.
@@ -63,7 +62,7 @@ func (a *Service) SeedDemo(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if _, err = a.DB.Exec(ctx, "INSERT INTO users(id,email,password_hash,email_verified) VALUES($1,$2,$3,true) ON CONFLICT(email) DO NOTHING", intern.ID, intern.Email, string(hash)); err != nil {
+		if _, err = a.DB.Exec(ctx, "INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3) ON CONFLICT(email) DO NOTHING", intern.ID, intern.Email, string(hash)); err != nil {
 			return err
 		}
 	}
