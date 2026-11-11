@@ -22,9 +22,10 @@ import (
 )
 
 type googleProfile struct {
-	Sub   string `json:"sub"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	Name          string `json:"name"`
+	EmailVerified bool   `json:"email_verified"`
 }
 
 func googleEnv() (id, secret, redirect string) {
@@ -120,7 +121,8 @@ func (a *Service) googleUser(ctx context.Context, p *googleProfile) (string, err
 	}
 
 	uid := idgen.New()
-	if _, err = a.DB.Exec(ctx, "INSERT INTO users(id,email,google_sub) VALUES($1,$2,$3)", uid, email, p.Sub); err != nil {
+	// Google подтверждает почту сам: созданный юзер сразу verified.
+	if _, err = a.DB.Exec(ctx, "INSERT INTO users(id,email,google_sub,email_verified) VALUES($1,$2,$3,$4)", uid, email, p.Sub, p.EmailVerified); err != nil {
 		return "", fmt.Errorf("insert google user: %w", err)
 	}
 	return uid, nil

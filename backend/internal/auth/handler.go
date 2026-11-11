@@ -17,6 +17,7 @@ type Service struct {
 	SecureCookie   bool
 	Google         *oauth2.Config
 	GoogleUserInfo string
+	Mailer         Mailer
 	mu             sync.Mutex
 	attempts       map[string]attempt
 }
@@ -30,6 +31,7 @@ func (a *Service) Handler() http.Handler {
 	m.HandleFunc("POST /api/v1/auth/logout", httpapi.Handle(a.logout))
 	m.HandleFunc("GET /api/v1/auth/google/login", httpapi.Handle(a.limited(a.googleLogin)))
 	m.HandleFunc("GET /api/v1/auth/google/callback", httpapi.Handle(a.limited(a.googleCallback)))
+	m.HandleFunc("GET /api/v1/auth/confirm", httpapi.Handle(a.confirm))
 	m.HandleFunc("GET /api/v1/auth/me", httpapi.Handle(httpapi.Authenticated(a.Keys, func(w http.ResponseWriter, r *http.Request) error {
 		c := httpapi.User(r)
 		httpapi.JSON(w, 200, map[string]string{"id": c.Subject, "email": c.Email, "role": c.Role})

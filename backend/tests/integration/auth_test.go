@@ -15,10 +15,15 @@ func TestAuthLifecycle(t *testing.T) {
 	for _, data := range []any{obj("email", "bad", "password", "long-password"), obj("email", "a@example.test", "password", "short"), obj("email", "Name <a@example.test>", "password", "long-password"), obj("extra", true)} {
 		req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 400)
 	}
+	// С подтверждением почты логин требует verified: подтверждаем по ссылке из письма.
+	mailer := &captureMailer{}
+	h.auth.Mailer = mailer
 	data := obj("email", "NEW@example.test", "password", "LongPassword123!")
 	raw := req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 201)
 	token := unpack[struct{ AccessToken string }](t, raw).AccessToken
 	req(t, h.client, h.gateway, "POST", "/api/v1/auth/register", "", data, 409)
+	link := mailer.lastToken(t)
+	req(t, h.client, h.gateway, "GET", "/api/v1/auth/confirm?token="+link, "", nil, 200)
 	req(t, h.client, h.gateway, "GET", "/api/v1/auth/me", token, nil, 200)
 	u, _ := url.Parse(h.gateway + "/api/v1/auth/refresh")
 	oldCookie := h.client.Jar.Cookies(u)
