@@ -1,1 +1,5 @@
-junk/playbook
+.env
+.venv
+junk
+**/__pycache__
+.pytest_cache
