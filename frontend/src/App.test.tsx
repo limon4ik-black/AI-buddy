@@ -65,8 +65,12 @@ it("shows a team-aware chat, confirms a request and saves progress in the profil
   await openProfile(user);
   expect(screen.getByText("DEMO-ANNA · 9 ноября")).toBeTruthy();
   const check = screen.getByRole("checkbox", { name: "Прочитать гид новичка" });
+  expect(screen.getByText("Бобрик: Новичок")).toBeTruthy();
   await user.click(check);
   await waitFor(() => expect((check as HTMLInputElement).checked).toBe(true));
+  await waitFor(() =>
+    expect(screen.getByText("Бобрик: Освоился")).toBeTruthy(),
+  );
   expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
     "33",
   );

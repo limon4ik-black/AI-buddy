@@ -1,66 +1,52 @@
 import { useEffect, useState } from "react";
 import idle from "../assets/pet/бобрик/idle.svg";
-import run from "../assets/pet/бобрик/run.svg";
 import think from "../assets/pet/бобрик/think.svg";
 import jump from "../assets/pet/бобрик/jump.svg";
+import belly from "../assets/pet/бобрик/belly.svg";
+import hat from "../assets/pet/бобрик/hat.svg";
+import tuxedo from "../assets/pet/бобрик/tuxedo.svg";
+import cap from "../assets/pet/бобрик/cap.svg";
 
-const moods = { idle, run, think, jump } as const;
+const moods = { idle, think, jump } as const;
 
 type Mood = keyof typeof moods;
 
-// Цикл (~10с): идёт в сторону → стоит → прыжок. Каждый четвёртый круг
-// вместо прыжка задумывается на 2 секунды. Пока бадди генерирует ответ — думает.
-export function Pet({ busy }: { busy: boolean }) {
-  const [mood, setMood] = useState<Mood>("idle");
-  const [side, setSide] = useState<"a" | "b">("a");
+export const petStages = [
+  "Новичок",
+  "Освоился",
+  "В шляпе",
+  "Джентльмен",
+  "Выпускник",
+] as const;
+
+// Питомец растёт вместе с чек-листом: 25% — животик, 50% — шляпа,
+// 75% — смокинг, 100% — академическая шапочка. При смене стадии прыгает.
+export function Pet({ percent, busy }: { percent: number; busy: boolean }) {
+  const stage =
+    percent >= 100 ? 4 : percent >= 75 ? 3 : percent >= 50 ? 2 : percent >= 25 ? 1 : 0;
+  const [celebrate, setCelebrate] = useState(false);
   useEffect(() => {
-    if (busy) {
-      setMood("think");
-      return;
-    }
-    let alive = true;
-    let timer = 0;
-    let round = 0;
-    const later = (ms: number, fn: () => void) => {
-      timer = window.setTimeout(() => {
-        if (alive) fn();
-      }, ms);
-    };
-    const step = () => {
-      if (!alive) return;
-      round++;
-      setSide((s) => (s === "a" ? "b" : "a"));
-      setMood("run");
-      later(3500, () => {
-        setMood("idle");
-        later(1500, () => {
-          if (round % 4 === 0) {
-            setMood("think");
-            later(2000, () => {
-              setMood("idle");
-              later(3500, step);
-            });
-          } else {
-            setMood("jump");
-            later(1000, () => {
-              setMood("idle");
-              later(4000, step);
-            });
-          }
-        });
-      });
-    };
-    later(1200, step);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [busy]);
+    setCelebrate(true);
+    const timer = setTimeout(() => setCelebrate(false), 1400);
+    return () => clearTimeout(timer);
+  }, [stage]);
+  const mood: Mood = celebrate ? "jump" : busy ? "think" : "idle";
   return (
-    <div className={"pet pet-" + mood + " pet-side-" + side} aria-hidden="true">
-      <span className="pet-flip">
-        <img src={moods[mood]} alt="" width="96" height="106" />
-      </span>
-    </div>
+    <figure className={"pet-figure pet-" + mood} aria-hidden="true">
+      <div className="pet-frame">
+        <img src={moods[mood]} alt="" width="120" height="132" />
+        {stage >= 1 && (
+          <img
+            className={"pet-overlay" + (mood === "jump" ? " pet-overlay-jump" : "")}
+            src={belly}
+            alt=""
+          />
+        )}
+        {stage >= 2 && stage < 4 && <img className="pet-overlay" src={hat} alt="" />}
+        {stage >= 3 && <img className="pet-overlay" src={tuxedo} alt="" />}
+        {stage >= 4 && <img className="pet-overlay" src={cap} alt="" />}
+      </div>
+      <figcaption>Бобрик: {petStages[stage]}</figcaption>
+    </figure>
   );
 }

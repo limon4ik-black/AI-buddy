@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { Buddy } from "../hooks/useBuddy";
 import { api, type Document } from "../api";
 import { errorText } from "../hooks/useBuddy";
+import { Pet } from "../components/Pet";
 import { Icon } from "../components/Icon";
 import { dateLabel, initials, roleLabel, teamColors } from "../model";
 export function ProfileScreen({
@@ -132,6 +133,10 @@ export function ProfileScreen({
               <h2>Чек-лист адаптации</h2>
               <span className="count-label">{d.checklist.total} шагов</span>
             </div>
+            <Pet
+              percent={d.checklist.percent}
+              busy={buddy.updatingTask || buddy.savingProfile}
+            />
             <div className="segmented" aria-label="Фильтр задач">
               {[
                 ["all", "Все шаги"],

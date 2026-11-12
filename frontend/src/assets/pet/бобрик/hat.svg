@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="200" height="220">
+  <!-- кепка -->
+  <ellipse cx="95" cy="52" rx="33" ry="7" fill="#2244A8"/>
+  <rect x="66" y="22" width="58" height="30" rx="9" fill="#2E5BD8"/>
+  <rect x="66" y="43" width="58" height="7" fill="#F91155"/>
+</svg>

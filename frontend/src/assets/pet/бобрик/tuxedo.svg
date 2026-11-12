@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="200" height="220">
+  <!-- рубашка -->
+  <ellipse cx="95" cy="156" rx="46" ry="38" fill="#E8F1FF"/>
+  <path d="M95 134 L84 152 L106 152 Z" fill="#FFFFFF"/>
+  <!-- пиджак -->
+  <path d="M60 132 Q58 186 95 192 Q132 186 130 132 L112 138 L95 133 L78 138 Z" fill="#1E3AA8"/>
+  <path d="M95 133 L74 139 L82 172 L95 152 Z" fill="#16297A"/>
+  <path d="M95 133 L116 139 L108 172 L95 152 Z" fill="#16297A"/>
+  <!-- бабочка -->
+  <path d="M95 122 l-11 -6 v12 z" fill="#F91155"/>
+  <path d="M95 122 l11 -6 v12 z" fill="#F91155"/>
+  <circle cx="95" cy="122" r="3.5" fill="#F9739E"/>
+  <!-- пуговицы и платок -->
+  <circle cx="95" cy="160" r="2.6" fill="#D6E2F5"/>
+  <circle cx="95" cy="174" r="2.6" fill="#D6E2F5"/>
+  <rect x="106" y="136" width="12" height="9" rx="2" fill="#F91155" transform="rotate(8 112 140)"/>
+</svg>
