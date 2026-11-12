@@ -10,6 +10,7 @@ import type {
   Tool,
 } from "./api";
 import type { Note } from "./notes";
+import type { Board, Scene } from "./boards";
 export const testPeople = [
   {
     email: "backend@buddy.test",
@@ -145,6 +146,7 @@ export type MockState = {
   chats: (Chat & { owner: string })[];
   messages: Record<string, Message[]>;
   notes: (Note & { owner: string })[];
+  boards: (Board & { scene: Scene; owner: string })[];
   sequence: number;
 };
 export function mockState(): MockState {
@@ -161,6 +163,7 @@ export function mockState(): MockState {
     chats: [],
     messages: {},
     notes: [],
+    boards: [],
     sequence: 0,
   };
 }
@@ -174,6 +177,7 @@ export function fakeFetch(state: MockState) {
     const path = String(input)
         .replace(/^https?:\/\/[^/]+/, "") // адрес заметок может быть переопределён абсолютным
         .replace("/notes-api", "") // заметки ходят через nginx фронта: тот же origin
+        .replace("/board-api", "") // и доски тоже
         .replace("/api/v1", "")
         .split("?")[0],
       method = init?.method || "GET",
@@ -458,6 +462,67 @@ export function fakeFetch(state: MockState) {
         state.notes = state.notes.filter((n) => n.id !== noteId);
         return response(null, 204);
       }
+    }
+    if (path === "/boards") {
+      if (method === "POST") {
+        const board = {
+          id: "board-" + ++state.sequence,
+          userId: person.id,
+          title: body.title,
+          scene: body.scene,
+          version: 1,
+          createdAt: "2026-11-12T10:00:00Z",
+          updatedAt: "2026-11-12T10:00:00Z",
+          owner: person.id,
+        };
+        state.boards.unshift(board);
+        return response(board, 201);
+      }
+      // Список без сцен — как в настоящем сервисе.
+      return response({
+        items: state.boards
+          .filter((b) => b.owner === person.id)
+          .map((b) => ({
+            id: b.id,
+            userId: b.userId,
+            title: b.title,
+            version: b.version,
+            createdAt: b.createdAt,
+            updatedAt: b.updatedAt,
+          })),
+        limit: 20,
+        offset: 0,
+      });
+    }
+    if (path.startsWith("/boards/")) {
+      const boardId = path.split("/").at(-1)!,
+        board = state.boards.find(
+          (b) => b.id === boardId && b.owner === person.id,
+        );
+      if (!board)
+        return response({ error: { message: "Объект не найден" } }, 404);
+      if (method === "PATCH") {
+        if (body.version !== board.version)
+          return response(
+            {
+              error: {
+                message:
+                  "Доска уже изменена, актуальная версия " + board.version,
+              },
+            },
+            409,
+          );
+        board.title = body.title;
+        board.scene = body.scene;
+        board.version += 1;
+        board.updatedAt = "2026-11-12T11:00:00Z";
+        return response(board);
+      }
+      if (method === "DELETE") {
+        state.boards = state.boards.filter((b) => b.id !== boardId);
+        return response(null, 204);
+      }
+      return response(board);
     }
     throw new Error("Unhandled " + method + " " + path);
   };

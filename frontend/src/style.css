@@ -3263,3 +3263,74 @@ button {
   gap: 10px;
   margin-top: 16px;
 }
+.board-editor {
+  display: grid;
+  gap: 12px;
+}
+.board-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.board-title {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e6;
+  border-radius: 12px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+.board-title:focus {
+  outline: 2px solid #00aaff;
+  outline-offset: 1px;
+}
+/* Холст занимает 100% родителя, поэтому высоту задаём здесь, а не внутри Excalidraw */
+.board-canvas {
+  height: 70vh;
+  min-height: 420px;
+  border: 1px solid #e0e0e6;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.save-badge {
+  font-size: 13px;
+  color: #727283;
+}
+.save-saving {
+  color: #0079ac;
+}
+.boards-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.board-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #e9e9ee;
+}
+.board-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.board-card-head strong {
+  overflow-wrap: anywhere;
+}
+.board-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: #727283;
+  font-size: 13px;
+}

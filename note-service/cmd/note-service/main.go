@@ -19,8 +19,11 @@ import (
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/postgres"
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/response"
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/security"
+	boardrepo "github.com/limon4ik-black/AI-buddy/note-service/internal/features/board/repo/pg"
+	boardservice "github.com/limon4ik-black/AI-buddy/note-service/internal/features/board/service"
+	boardhttp "github.com/limon4ik-black/AI-buddy/note-service/internal/features/board/transport/http"
 	noterepo "github.com/limon4ik-black/AI-buddy/note-service/internal/features/note/repo/pg"
-	"github.com/limon4ik-black/AI-buddy/note-service/internal/features/note/service"
+	noteservice "github.com/limon4ik-black/AI-buddy/note-service/internal/features/note/service"
 	notehttp "github.com/limon4ik-black/AI-buddy/note-service/internal/features/note/transport/http"
 )
 
@@ -28,7 +31,7 @@ const defaultOrigins = "http://127.0.0.1:8080,http://localhost:8080,http://127.0
 
 // @title       Note Service
 // @version     1.0
-// @description Блокнот: заметки пользователя. Владелец берётся из подписанного токена и сверяется с ?user_id= из запроса.
+// @description Заметки и доски пользователя. Владелец берётся из подписанного токена и сверяется с ?user_id= из запроса.
 // @BasePath    /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -53,7 +56,8 @@ func main() {
 	defer pool.Close()
 
 	timeout := config.Duration("POSTGRES_TIMEOUT", 10*time.Second)
-	transport := notehttp.New(service.New(noterepo.New(pool, timeout)))
+	notes := notehttp.New(noteservice.New(noterepo.New(pool, timeout)))
+	boards := boardhttp.New(boardservice.New(boardrepo.New(pool, timeout)))
 
 	r := gin.New()
 	// CORS первым: preflight уходит без Authorization, авторизация его бы отвергла.
@@ -68,7 +72,9 @@ func main() {
 		}
 		swagger(c)
 	})
-	transport.Register(r.Group("/api/v1", middleware.Auth(keys)))
+	api := r.Group("/api/v1", middleware.Auth(keys))
+	notes.Register(api)
+	boards.Register(api)
 
 	// /healthz без авторизации: его дёргает healthcheck из compose и проверяет заодно БД.
 	r.GET("/healthz", func(c *gin.Context) {

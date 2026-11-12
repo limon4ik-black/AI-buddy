@@ -48,12 +48,19 @@ func JSON(c *gin.Context, status int, value any) {
 	c.JSON(status, value)
 }
 
+// maxBody — предел тела запроса по умолчанию; холсты просят свой, больший (см. board.MaxScene).
+const maxBody = 1 << 20
+
 // Decode перекладывает тело запроса в v. v — указатель на структуру запроса.
-func Decode(c *gin.Context, v any) error {
+func Decode(c *gin.Context, v any) error { return DecodeLimit(c, v, maxBody) }
+
+// DecodeLimit — то же, но с явным пределом тела. Обрезанное тело не пройдёт разбор,
+// поэтому молчаливой потери данных не будет: клиент получит 400.
+func DecodeLimit(c *gin.Context, v any, limit int64) error {
 	if !strings.HasPrefix(c.GetHeader("Content-Type"), "application/json") {
 		return Problem(415, "unsupported_media_type", "Ожидается application/json")
 	}
-	d := json.NewDecoder(io.LimitReader(c.Request.Body, 1<<20))
+	d := json.NewDecoder(io.LimitReader(c.Request.Body, limit))
 	d.DisallowUnknownFields()
 	if err := d.Decode(v); err != nil {
 		return Invalid("Некорректное тело запроса")

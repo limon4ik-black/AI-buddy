@@ -14,6 +14,7 @@ import {
   KnowledgeScreen,
 } from "./features/DirectoryScreens";
 import { NotesScreen } from "./features/NotesScreen";
+import { BoardsScreen } from "./features/BoardsScreen";
 export function App() {
   const buddy = useBuddy(),
     [sidebar, setSidebar] = useState(false),
@@ -97,6 +98,7 @@ export function App() {
     services: "Сервисы",
     knowledge: "База знаний",
     notes: "Заметки",
+    boards: "Доски",
   };
   const latestAssistant = [...buddy.messages]
     .reverse()
@@ -211,7 +213,8 @@ export function App() {
               <Pet busy={buddy.generating} />
             </>
           )}{" "}
-          {buddy.view === "notes" && <NotesScreen />}
+          {buddy.view === "notes" && <NotesScreen />}{" "}
+          {buddy.view === "boards" && <BoardsScreen />}
         </div>
       </main>
       {buddy.pendingAction && (

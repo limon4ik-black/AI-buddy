@@ -15,6 +15,318 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/boards": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Свежие сверху (по updated_at), без сцен. ?user_id= должен совпасть с токеном.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Список досок владельца",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "необязательно; если указан, должен совпадать с sub токена",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "размер страницы, по умолчанию 20, максимум 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "сколько записей пропустить, по умолчанию 0",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_board_transport_http.listResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "некорректные limit или offset",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "401": {
+                        "description": "нет, битый или просроченный токен",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "user_id не совпал с токеном",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Владелец берётся из токена, ?user_id= должен совпасть с ним. Сцена передаётся целиком.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Создать доску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "необязательно; если указан, должен совпадать с sub токена",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "description": "название и сцена Excalidraw",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_board_transport_http.createRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/board.Board"
+                        }
+                    },
+                    "400": {
+                        "description": "некорректный запрос или сцена",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "401": {
+                        "description": "нет, битый или просроченный токен",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "user_id не совпал с токеном",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отдаёт доску целиком, вместе со сценой. Владелец берётся из токена.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Получить доску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id доски",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "необязательно; если указан, должен совпадать с sub токена",
+                        "name": "user_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/board.Board"
+                        }
+                    },
+                    "401": {
+                        "description": "нет, битый или просроченный токен",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "user_id не совпал с токеном",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "404": {
+                        "description": "доски нет или она чужая",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Без проверки version: повторный запрос вернёт 404.",
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Удалить доску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id доски",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "необязательно; если указан, должен совпадать с sub токена",
+                        "name": "user_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Удалено"
+                    },
+                    "401": {
+                        "description": "нет, битый или просроченный токен",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "user_id не совпал с токеном",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "404": {
+                        "description": "доски нет, она чужая или уже удалена",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Заменяет название и сцену целиком. Оптимистичная блокировка: version должен совпадать с текущим в базе.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Изменить доску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "id доски",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "необязательно; если указан, должен совпадать с sub токена",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "description": "новое название, сцена и ожидаемая версия",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_features_board_transport_http.updateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/board.Board"
+                        }
+                    },
+                    "400": {
+                        "description": "некорректный запрос, сцена или нет version",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "401": {
+                        "description": "нет, битый или просроченный токен",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "403": {
+                        "description": "user_id не совпал с токеном",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "404": {
+                        "description": "доски нет или она чужая",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    },
+                    "409": {
+                        "description": "версия устарела, в тексте актуальная",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorBody"
+                        }
+                    }
+                }
+            }
+        },
         "/notes": {
             "get": {
                 "security": [
@@ -54,7 +366,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.listResponse"
+                            "$ref": "#/definitions/internal_features_note_transport_http.listResponse"
                         }
                     },
                     "400": {
@@ -107,7 +419,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.createRequest"
+                            "$ref": "#/definitions/internal_features_note_transport_http.createRequest"
                         }
                     }
                 ],
@@ -283,7 +595,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/http.updateRequest"
+                            "$ref": "#/definitions/internal_features_note_transport_http.updateRequest"
                         }
                     }
                 ],
@@ -329,7 +641,76 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "http.createRequest": {
+        "board.Board": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "scene": {
+                    "description": "swag не умеет RawMessage без подсказки",
+                    "type": "object"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_features_board_transport_http.createRequest": {
+            "type": "object",
+            "properties": {
+                "scene": {
+                    "type": "object"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_board_transport_http.listResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/board.Board"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_features_board_transport_http.updateRequest": {
+            "type": "object",
+            "properties": {
+                "scene": {
+                    "type": "object"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_features_note_transport_http.createRequest": {
             "type": "object",
             "properties": {
                 "content": {
@@ -337,7 +718,7 @@ const docTemplate = `{
                 }
             }
         },
-        "http.listResponse": {
+        "internal_features_note_transport_http.listResponse": {
             "type": "object",
             "properties": {
                 "items": {
@@ -354,7 +735,7 @@ const docTemplate = `{
                 }
             }
         },
-        "http.updateRequest": {
+        "internal_features_note_transport_http.updateRequest": {
             "type": "object",
             "properties": {
                 "content": {
@@ -421,7 +802,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Note Service",
-	Description:      "Блокнот: заметки пользователя. Владелец берётся из подписанного токена и сверяется с ?user_id= из запроса.",
+	Description:      "Заметки и доски пользователя. Владелец берётся из подписанного токена и сверяется с ?user_id= из запроса.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

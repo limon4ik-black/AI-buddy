@@ -16,7 +16,8 @@ export type View =
   | "teams"
   | "services"
   | "knowledge"
-  | "notes";
+  | "notes"
+  | "boards";
 export type Workspace = {
   account: Account;
   profile: Profile;
