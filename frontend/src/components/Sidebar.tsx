@@ -187,6 +187,14 @@ export function Sidebar({
               Сервисы
               <Icon name="chevron" size={14} />
             </button>
+            <button
+              className={buddy.view === "notes" ? "active" : ""}
+              onClick={() => navigate("notes")}
+            >
+              <Icon name="edit" size={19} />
+              Заметки
+              <Icon name="chevron" size={14} />
+            </button>
           </nav>
           <div className="sidebar-footer">
             <span>

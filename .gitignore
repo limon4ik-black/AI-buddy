@@ -13,3 +13,7 @@ reports/backend.html
 reports/frontend/*
 !reports/frontend/coverage-summary.json
 !reports/frontend/lcov.info
+
+#note-service
+note-service/.env
+note-service/out/

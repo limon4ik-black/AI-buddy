@@ -1,0 +1,264 @@
+basePath: /api/v1
+definitions:
+  http.createRequest:
+    properties:
+      content:
+        type: string
+    type: object
+  http.listResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/note.Note'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+    type: object
+  http.updateRequest:
+    properties:
+      content:
+        type: string
+      version:
+        type: integer
+    type: object
+  note.Note:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      updatedAt:
+        type: string
+      userId:
+        type: string
+      version:
+        type: integer
+    type: object
+  response.ErrorBody:
+    properties:
+      error:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        type: object
+    type: object
+info:
+  contact: {}
+  description: 'Блокнот: заметки пользователя. Владелец берётся из подписанного токена
+    и сверяется с ?user_id= из запроса.'
+  title: Note Service
+  version: "1.0"
+paths:
+  /notes:
+    get:
+      description: Свежие сверху (по updated_at). ?user_id= должен совпасть с токеном.
+      parameters:
+      - description: необязательно; если указан, должен совпадать с sub токена
+        in: query
+        name: user_id
+        type: string
+      - description: размер страницы, по умолчанию 20, максимум 100
+        in: query
+        name: limit
+        type: integer
+      - description: сколько записей пропустить, по умолчанию 0
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.listResponse'
+        "400":
+          description: некорректные limit или offset
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "401":
+          description: нет, битый или просроченный токен
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: user_id не совпал с токеном
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Список заметок владельца
+      tags:
+      - notes
+    post:
+      consumes:
+      - application/json
+      description: Владелец берётся из токена, ?user_id= должен совпасть с ним.
+      parameters:
+      - description: необязательно; если указан, должен совпадать с sub токена
+        in: query
+        name: user_id
+        type: string
+      - description: текст заметки
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.createRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/note.Note'
+        "400":
+          description: некорректный запрос
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "401":
+          description: нет, битый или просроченный токен
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: user_id не совпал с токеном
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Создать заметку
+      tags:
+      - notes
+  /notes/{id}:
+    delete:
+      description: 'Без проверки version: повторный запрос вернёт 404.'
+      parameters:
+      - description: id заметки
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: необязательно; если указан, должен совпадать с sub токена
+        in: query
+        name: user_id
+        type: string
+      responses:
+        "204":
+          description: Удалено
+        "401":
+          description: нет, битый или просроченный токен
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: user_id не совпал с токеном
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: заметки нет, она чужая или уже удалена
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Удалить заметку
+      tags:
+      - notes
+    get:
+      description: Владелец берётся из токена, ?user_id= должен совпасть с ним.
+      parameters:
+      - description: id заметки
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: необязательно; если указан, должен совпадать с sub токена
+        in: query
+        name: user_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/note.Note'
+        "401":
+          description: нет, битый или просроченный токен
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: user_id не совпал с токеном
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: заметки нет или она чужая
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Получить заметку
+      tags:
+      - notes
+    patch:
+      consumes:
+      - application/json
+      description: 'Оптимистичная блокировка: version должен совпадать с текущим в
+        базе.'
+      parameters:
+      - description: id заметки
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: необязательно; если указан, должен совпадать с sub токена
+        in: query
+        name: user_id
+        type: string
+      - description: новый текст и ожидаемая версия
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.updateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/note.Note'
+        "400":
+          description: некорректный запрос или нет version
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "401":
+          description: нет, битый или просроченный токен
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "403":
+          description: user_id не совпал с токеном
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "404":
+          description: заметки нет или она чужая
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+        "409":
+          description: версия устарела, в тексте актуальная
+          schema:
+            $ref: '#/definitions/response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Изменить текст заметки
+      tags:
+      - notes
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

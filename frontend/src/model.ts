@@ -10,7 +10,13 @@ import type {
   Tool,
   AccessRequest,
 } from "./api";
-export type View = "chat" | "profile" | "teams" | "services" | "knowledge";
+export type View =
+  | "chat"
+  | "profile"
+  | "teams"
+  | "services"
+  | "knowledge"
+  | "notes";
 export type Workspace = {
   account: Account;
   profile: Profile;

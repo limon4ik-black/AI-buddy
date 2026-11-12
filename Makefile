@@ -30,3 +30,6 @@ vet:
 	go -C backend vet ./...
 test-backend:
 	bash scripts/test-backend.sh
+
+note-service-run:
+	@go run backend/note-service/cmd/note-service/main.go

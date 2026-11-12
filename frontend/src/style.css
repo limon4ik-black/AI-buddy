@@ -3195,3 +3195,71 @@ button {
 .text-button {
   color: #0079ac;
 }
+.notes-composer {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: #f7f7f8;
+}
+.notes-field,
+.note-editor {
+  display: grid;
+  gap: 8px;
+}
+.notes-field textarea,
+.note-editor textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e6;
+  border-radius: 12px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+.notes-field textarea:focus,
+.note-editor textarea:focus {
+  outline: 2px solid #00aaff;
+  outline-offset: 1px;
+}
+.notes-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #e9e9ee;
+}
+.note-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: #727283;
+  font-size: 13px;
+}
+.note-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.notes-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+}

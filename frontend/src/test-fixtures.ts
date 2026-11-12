@@ -9,6 +9,7 @@ import type {
   AccessRequest,
   Tool,
 } from "./api";
+import type { Note } from "./notes";
 export const testPeople = [
   {
     email: "backend@buddy.test",
@@ -143,6 +144,7 @@ export type MockState = {
   requests: Record<string, AccessRequest[]>;
   chats: (Chat & { owner: string })[];
   messages: Record<string, Message[]>;
+  notes: (Note & { owner: string })[];
   sequence: number;
 };
 export function mockState(): MockState {
@@ -158,6 +160,7 @@ export function mockState(): MockState {
     requests: {},
     chats: [],
     messages: {},
+    notes: [],
     sequence: 0,
   };
 }
@@ -168,7 +171,11 @@ const response = (value: unknown, status = 200) =>
   });
 export function fakeFetch(state: MockState) {
   return async (input: RequestInfo | URL, init?: RequestInit) => {
-    const path = String(input).replace("/api/v1", "").split("?")[0],
+    const path = String(input)
+        .replace(/^https?:\/\/[^/]+/, "") // адрес заметок может быть переопределён абсолютным
+        .replace("/notes-api", "") // заметки ходят через nginx фронта: тот же origin
+        .replace("/api/v1", "")
+        .split("?")[0],
       method = init?.method || "GET",
       body = init?.body ? JSON.parse(String(init.body)) : {};
     const person = testPeople.find((p) => p.email === state.email) || {
@@ -403,6 +410,54 @@ export function fakeFetch(state: MockState) {
       };
       state.messages[id].push(message);
       return response(message, 201);
+    }
+    if (path === "/notes") {
+      if (method === "POST") {
+        const note = {
+          id: "note-" + ++state.sequence,
+          userId: person.id,
+          content: body.content,
+          version: 1,
+          createdAt: "2026-11-12T10:00:00Z",
+          updatedAt: "2026-11-12T10:00:00Z",
+          owner: person.id,
+        };
+        state.notes.unshift(note);
+        return response(note, 201);
+      }
+      return response({
+        items: state.notes.filter((n) => n.owner === person.id),
+        limit: 20,
+        offset: 0,
+      });
+    }
+    if (path.startsWith("/notes/")) {
+      const noteId = path.split("/").at(-1)!,
+        note = state.notes.find(
+          (n) => n.id === noteId && n.owner === person.id,
+        );
+      if (!note)
+        return response({ error: { message: "Объект не найден" } }, 404);
+      if (method === "PATCH") {
+        if (body.version !== note.version)
+          return response(
+            {
+              error: {
+                message:
+                  "Заметка уже изменена, актуальная версия " + note.version,
+              },
+            },
+            409,
+          );
+        note.content = body.content;
+        note.version += 1;
+        note.updatedAt = "2026-11-12T11:00:00Z";
+        return response(note);
+      }
+      if (method === "DELETE") {
+        state.notes = state.notes.filter((n) => n.id !== noteId);
+        return response(null, 204);
+      }
     }
     throw new Error("Unhandled " + method + " " + path);
   };
