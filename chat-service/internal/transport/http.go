@@ -15,10 +15,11 @@ import (
 )
 
 type Handler struct {
-	Service *chat.Service
-	Timeout time.Duration
-	Origins []string
-	active  sync.WaitGroup
+	SendAuthenticated func(*http.Request, uuid.UUID, string) (string, error)
+	Service           *chat.Service
+	Timeout           time.Duration
+	Origins           []string
+	active            sync.WaitGroup
 }
 type event struct {
 	Type    string `json:"type"`
@@ -56,6 +57,18 @@ func parseID(raw string) (uuid.UUID, error) {
 	}
 	return uuid.Parse(raw)
 }
+
+// userID keeps legacy UUID owners unchanged while accepting the application's
+// string subjects. The mapping is stable across restarts; chat IDs remain UUIDs.
+func userID(raw string) (uuid.UUID, error) {
+	if raw == "" || len(raw) > 255 || strings.TrimSpace(raw) != raw {
+		return uuid.Nil, errors.New("invalid user ID")
+	}
+	if id, err := parseID(raw); err == nil {
+		return id, nil
+	}
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("ai-buddy:user:"+raw)), nil
+}
 func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /chats", h.create)
@@ -64,7 +77,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("DELETE /chats/{id}", h.delete)
 	mux.HandleFunc("GET /ws", h.ws)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := parseID(r.Header.Get("X-User-ID"))
+		user, err := userID(r.Header.Get("X-User-ID"))
 		if err != nil {
 			respond(w, 401, map[string]string{"message": "Отсутствует или некорректен X-User-ID"})
 			return
@@ -192,7 +205,12 @@ func (h *Handler) ws(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		opCtx, done := context.WithTimeout(ctx, h.Timeout)
-		answer, err := h.Service.Send(opCtx, user(r), id, body.Content)
+		var answer string
+		if h.SendAuthenticated != nil {
+			answer, err = h.SendAuthenticated(r.WithContext(opCtx), id, body.Content)
+		} else {
+			answer, err = h.Service.Send(opCtx, user(r), id, body.Content)
+		}
 		done()
 		if err != nil {
 			_, message := publicError(err)

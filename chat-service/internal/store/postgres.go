@@ -20,10 +20,21 @@ func (p *Postgres) Migrate(ctx context.Context) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
+	schema := p.Pool.Config().ConnConfig.RuntimeParams["search_path"]
+	if schema == "" {
+		schema = "public"
+	}
+	quoted := pgx.Identifier{schema}.Sanitize()
+	if _, err = tx.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS "+quoted+"; SET LOCAL search_path TO "+quoted); err != nil {
+		return err
+	}
 	if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(8793201)"); err != nil {
 		return err
 	}
 	if _, err = tx.Exec(ctx, migrations.Initial); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, migrations.Context); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

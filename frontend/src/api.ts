@@ -134,7 +134,7 @@ export class API {
         ...extra,
       },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(40000),
+      signal: AbortSignal.timeout(path.endsWith("/answer") ? 195000 : 40000),
     });
     if (res.status === 401 && retry && !path.startsWith("/auth/")) {
       if (await this.refresh())

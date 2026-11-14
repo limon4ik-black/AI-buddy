@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 	_ "time/tzdata" // база часовых зон внутри бинаря: TZ=Europe/Moscow работает без tzdata в образе
 
 	"github.com/gin-gonic/gin"
+	"github.com/limon4ik-black/AI-buddy/note-service/onboarding"
+	sharedconfig "github.com/limon4ik-black/AI-buddy/shared/platform/config"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
@@ -75,6 +78,20 @@ func main() {
 	api := r.Group("/api/v1", middleware.Auth(keys))
 	notes.Register(api)
 	boards.Register(api)
+	sharedKeys, err := sharedconfig.JWT(false)
+	if err != nil {
+		log.Fatal("JWT configuration", zap.Error(err))
+	}
+	tokens, err := sharedconfig.Secrets("GATEWAY_SERVICE_TOKEN", "CHAT_SERVICE_TOKEN", "INDEXER_SERVICE_TOKEN")
+	if err != nil {
+		log.Fatal("service credentials", zap.Error(err))
+	}
+	onboardingAPI := (&onboarding.Service{DB: pool, Keys: sharedKeys, GatewayToken: tokens["GATEWAY_SERVICE_TOKEN"], ChatToken: tokens["CHAT_SERVICE_TOKEN"], IndexerToken: tokens["INDEXER_SERVICE_TOKEN"], EmployeeURL: config.Env("EMPLOYEE_URL", "http://employee:8082"), Client: &http.Client{Timeout: 25 * time.Second}}).Handler()
+	r.Any("/internal/*path", gin.WrapH(onboardingAPI))
+	r.GET("/api/v1/checklist", gin.WrapH(onboardingAPI))
+	r.PATCH("/api/v1/checklist/tasks/:id", gin.WrapH(onboardingAPI))
+	r.GET("/api/v1/information", gin.WrapH(onboardingAPI))
+	r.GET("/api/v1/information/:id", gin.WrapH(onboardingAPI))
 
 	// /healthz без авторизации: его дёргает healthcheck из compose и проверяет заодно БД.
 	r.GET("/healthz", func(c *gin.Context) {
@@ -82,6 +99,11 @@ func main() {
 		defer cancel()
 		if err := pool.Ping(ping); err != nil {
 			response.Abort(c, err)
+			return
+		}
+		var imported bool
+		if err := pool.QueryRow(ping, "SELECT EXISTS(SELECT 1 FROM onboarding.imports WHERE name='legacy-info-v1')").Scan(&imported); err != nil || !imported {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "onboarding_not_ready"})
 			return
 		}
 		response.JSON(c, 200, map[string]string{"status": "ok"})

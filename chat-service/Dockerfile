@@ -1,8 +1,8 @@
-FROM golang:1.25-alpine AS build
+FROM golang:1.27-alpine AS build
 WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
 COPY . .
+WORKDIR /src/chat-service
+RUN go mod download
 RUN CGO_ENABLED=0 go build -trimpath -o /chat-service ./cmd/chat-service
 FROM alpine:3.22
 RUN apk add --no-cache ca-certificates
