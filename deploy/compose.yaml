@@ -1,0 +1,205 @@
+name: ai-buddy
+x-runtime: &runtime
+  restart: unless-stopped
+  init: true
+  networks: [app]
+  healthcheck:
+    test: [CMD-SHELL, 'wget -q -O - http://127.0.0.1:$${PORT}/healthz || exit 1']
+    interval: 10s
+    timeout: 3s
+    retries: 5
+    start_period: 15s
+x-identity: &identity
+  JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?Run make configure first}
+  GATEWAY_SERVICE_TOKEN: ${GATEWAY_SERVICE_TOKEN:?Run make configure first}
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: buddy_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run make configure first}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      INFO_DB_PASSWORD: ${INFO_DB_PASSWORD}
+      CHAT_DB_PASSWORD: ${CHAT_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/01-databases.sh:ro
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U buddy_admin -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  auth:
+    <<: *runtime
+    build: {context: .., dockerfile: auth-service/Dockerfile}
+    networks: [app, database]
+    environment:
+      <<: *identity
+      PORT: 8081
+      LISTEN_ADDR: ':8081'
+      JWT_PRIVATE_SEED: ${JWT_PRIVATE_SEED}
+      DATABASE_URL: postgres://auth_user:${AUTH_DB_PASSWORD}@postgres:5432/auth_db?sslmode=disable
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      SMTP_HOST: ${BUDDY_SMTP_HOST:-mailpit}
+      SMTP_PORT: ${BUDDY_SMTP_PORT:-1025}
+      SMTP_USER: ${BUDDY_SMTP_USER:-}
+      SMTP_PASSWORD: ${BUDDY_SMTP_PASSWORD:-}
+      SMTP_FROM: ${BUDDY_SMTP_FROM:-buddy@demo.test}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on: {postgres: {condition: service_healthy}, mailpit: {condition: service_started}}
+  employee:
+    <<: *runtime
+    build: {context: .., dockerfile: employee-service/Dockerfile}
+    networks: [app, database]
+    ports: ['127.0.0.1:8082:8082']
+    environment:
+      <<: *identity
+      PORT: 8082
+      LISTEN_ADDR: ':8082'
+      DATABASE_URL: postgres://info_user:${INFO_DB_PASSWORD}@postgres:5432/info_db?sslmode=disable
+      CHAT_SERVICE_TOKEN: ${CHAT_SERVICE_TOKEN}
+      INDEXER_SERVICE_TOKEN: ${INDEXER_SERVICE_TOKEN}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      CORP_SERVICE_TOKEN: ${CORP_SERVICE_TOKEN}
+      CORP_URL: http://corpmock:8085
+    depends_on: {postgres: {condition: service_healthy}, corpmock: {condition: service_healthy}}
+  chat:
+    <<: *runtime
+    build: {context: .., dockerfile: chat-service/Dockerfile}
+    networks: [app, database]
+    environment:
+      <<: *identity
+      PORT: 8083
+      LISTEN_ADDR: ':8083'
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      DATABASE_URL: postgres://chat_user:${CHAT_DB_PASSWORD}@postgres:5432/chat_db?sslmode=disable&search_path=chat_v2
+      CHAT_SERVICE_TOKEN: ${CHAT_SERVICE_TOKEN}
+      RAG_SERVICE_TOKEN: ${RAG_SERVICE_TOKEN}
+      NOTE_URL: http://note_service:8079
+      RAG_URL: ${RAG_URL:-http://ragmock:8084}
+    depends_on: {postgres: {condition: service_healthy}, note_service: {condition: service_healthy}, ragmock: {condition: service_healthy}}
+  ragmock:
+    <<: *runtime
+    build: {context: .., dockerfile: ragmock-service/Dockerfile}
+    environment: {PORT: 8084, LISTEN_ADDR: ':8084', RAG_SERVICE_TOKEN: '${RAG_SERVICE_TOKEN}'}
+  corpmock:
+    <<: *runtime
+    build: {context: .., dockerfile: corpmock-service/Dockerfile}
+    environment: {PORT: 8085, LISTEN_ADDR: ':8085', CORP_SERVICE_TOKEN: '${CORP_SERVICE_TOKEN}'}
+  gateway:
+    <<: *runtime
+    build: {context: .., dockerfile: gateway-service/Dockerfile}
+    environment:
+      <<: *identity
+      PORT: 8080
+      LISTEN_ADDR: ':8080'
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+    depends_on: {auth: {condition: service_healthy}, employee: {condition: service_healthy}, chat: {condition: service_healthy}}
+  frontend:
+    build: ../frontend
+    restart: unless-stopped
+    ports: ['127.0.0.1:8080:80']
+    networks: [app]
+    depends_on: {gateway: {condition: service_healthy}, note_service: {condition: service_healthy}}
+  mailpit:
+    image: axllent/mailpit:v1.27
+    networks: [app]
+    ports: ['127.0.0.1:8025:8025']
+  note_postgres:
+    image: postgres:17.5-alpine
+    environment:
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: notes
+    volumes: [notesdata:/var/lib/postgresql/data]
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U notes -d notes']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  note_migrate:
+    image: migrate/migrate:v4.19.1
+    command: ['-path=/migrations', '-database=postgres://notes:${POSTGRES_PASSWORD}@note_postgres:5432/notes?sslmode=disable', up]
+    volumes: ['../note-service/migrations:/migrations:ro']
+    networks: [database]
+    depends_on: {note_postgres: {condition: service_healthy}}
+  note_import:
+    build: {context: .., dockerfile: note-service/Dockerfile}
+    entrypoint: [/import-onboarding]
+    networks: [database]
+    environment:
+      LEGACY_DATABASE_URL: postgres://info_user:${INFO_DB_PASSWORD}@postgres:5432/info_db?sslmode=disable
+      DATABASE_URL: postgres://notes:${POSTGRES_PASSWORD}@note_postgres:5432/notes?sslmode=disable
+    depends_on: {note_migrate: {condition: service_completed_successfully}, employee: {condition: service_healthy}}
+  note_service:
+    <<: *runtime
+    build: {context: .., dockerfile: note-service/Dockerfile}
+    networks: [app, database]
+    ports: ['127.0.0.1:8079:8079']
+    environment:
+      PORT: 8079
+      EMPLOYEE_URL: http://employee:8082
+      GATEWAY_SERVICE_TOKEN: ${GATEWAY_SERVICE_TOKEN}
+      CHAT_SERVICE_TOKEN: ${CHAT_SERVICE_TOKEN}
+      INDEXER_SERVICE_TOKEN: ${INDEXER_SERVICE_TOKEN}
+      POSTGRES_HOST: note_postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: notes
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      CORS_ORIGINS: ${APP_ORIGIN:-http://localhost:8080}
+    depends_on: {note_import: {condition: service_completed_successfully}, employee: {condition: service_healthy}}
+  rag_postgres:
+    profiles: [rag]
+    image: pgvector/pgvector:pg17
+    networks: [database]
+    environment: {POSTGRES_USER: rag, POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}', POSTGRES_DB: rag}
+    volumes:
+      - ragdata:/var/lib/postgresql/data
+      - ../rag-service/postgresql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U rag -d rag']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  rag:
+    profiles: [rag]
+    build: ../rag-service
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20m
+    networks: [app, database]
+    environment:
+      POSTGRES_HOST: rag_postgres
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: rag
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
+      FRIEND_TOKEN: ${RAG_SERVICE_TOKEN}
+      CHAT_SERVICE_TOKEN: ${CHAT_SERVICE_TOKEN}
+      INDEXER_SERVICE_TOKEN: ${INDEXER_SERVICE_TOKEN}
+      NOTE_URL: http://note_service:8079
+    volumes: [models:/root/.cache/huggingface]
+    depends_on: {rag_postgres: {condition: service_healthy}, note_service: {condition: service_healthy}}
+networks:
+  app: {}
+  database: {internal: true}
+volumes:
+  pgdata: {}
+  notesdata: {}
+  ragdata: {}
+  models: {}

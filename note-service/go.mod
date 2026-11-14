@@ -5,11 +5,14 @@ go 1.27.1
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/jackc/pgx/v5 v5.7.6
+	github.com/limon4ik-black/AI-buddy v0.0.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.28.0
 )
+
+replace github.com/limon4ik-black/AI-buddy => ..
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect

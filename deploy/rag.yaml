@@ -1,0 +1,7 @@
+services:
+  chat:
+    environment:
+      RAG_URL: http://rag:8000
+    depends_on:
+      rag:
+        condition: service_healthy

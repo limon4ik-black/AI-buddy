@@ -31,10 +31,13 @@ func TestREST(t *testing.T) {
 		h.ServeHTTP(w, r)
 		return w
 	}
-	for _, v := range []string{"", "bad"} {
+	for _, v := range []string{"", " bad "} {
 		if w := request("GET", "/chats", v); w.Code != 401 {
 			t.Fatal(w)
 		}
+	}
+	if w := request("GET", "/chats", "intern-egor"); w.Code != 200 {
+		t.Fatal("signed string subject must be accepted", w)
 	}
 	if w := request("GET", "/chats", u); w.Code != 200 || strings.TrimSpace(w.Body.String()) != "[]" {
 		t.Fatal(w)

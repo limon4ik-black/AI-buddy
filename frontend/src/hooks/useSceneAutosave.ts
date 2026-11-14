@@ -38,6 +38,7 @@ export function useSceneAutosave(
     version = useRef(board.version),
     currentTitle = useRef(board.title),
     lastSent = useRef(""),
+    saving = useRef(false),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const save = useCallback(async () => {
@@ -45,25 +46,30 @@ export function useSceneAutosave(
       clearTimeout(timer.current);
       timer.current = null;
     }
-    const body = JSON.stringify({
-      title: currentTitle.current,
-      scene: scene.current,
-    });
-    if (body === lastSent.current) return; // ничего не изменилось — не дёргаем сервис
-    setStatus("saving");
+    if (saving.current) return;
+    saving.current = true;
     try {
-      const updated = await boards.save(
-        board.id,
-        currentTitle.current,
-        scene.current,
-        version.current,
-      );
-      version.current = updated.version;
-      lastSent.current = body;
+      // После успешного PATCH отправляем последний снимок, накопленный за время запроса.
+      // При ошибке выходим: автоматического бесконечного повтора нет.
+      while (true) {
+        const titleSnapshot = currentTitle.current;
+        const sceneSnapshot = scene.current;
+        const body = JSON.stringify({ title: titleSnapshot, scene: sceneSnapshot });
+        if (body === lastSent.current) break;
+        setStatus("saving");
+        const updated = await boards.save(
+          board.id,
+          titleSnapshot,
+          sceneSnapshot,
+          version.current,
+        );
+        version.current = updated.version;
+        lastSent.current = body;
+        onSaved(updated);
+      }
       setStatus("saved");
       setMessage("");
       setSavedAt(clock());
-      onSaved(updated);
     } catch (e) {
       if (e instanceof BoardError && e.status === 409) {
         setStatus("conflict");
@@ -72,6 +78,8 @@ export function useSceneAutosave(
       }
       setStatus("error");
       setMessage(errorText(e));
+    } finally {
+      saving.current = false;
     }
   }, [board.id, onSaved]);
 

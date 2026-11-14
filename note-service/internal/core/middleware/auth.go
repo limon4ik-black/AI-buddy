@@ -12,7 +12,7 @@ import (
 const userKey = "userID"
 
 // Auth проверяет подписанный токен и кладёт владельца в контекст.
-// Пока не надета в main: ручки берут владельца из ?user_id=.
+// Владелец берётся только из подписанного JWT.
 func Auth(keys *security.Keys) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := keys.Verify(strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer "))
