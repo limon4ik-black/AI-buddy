@@ -64,7 +64,7 @@ func TestRateLimitIsPerUser(t *testing.T) {
 	if code, _ := hit(r, "anton", "10.0.0.1"); code != http.StatusTooManyRequests {
 		t.Fatalf("второй запрос anton получил %d, ждали 429", code)
 	}
-	if code, _ := hit(r, "ilvina", "10.0.0.1"); code != http.StatusOK {
+	if code, _ := hit(r, "bob", "10.0.0.1"); code != http.StatusOK {
 		t.Fatalf("запрос другого пользователя получил %d, ждали 200 — квота должна быть персональной", code)
 	}
 }
