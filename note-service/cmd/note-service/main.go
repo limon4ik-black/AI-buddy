@@ -76,7 +76,9 @@ func main() {
 		}
 		swagger(c)
 	})
-	api := r.Group("/api/v1", middleware.Auth(keys))
+	// Пределы частоты — после Auth: квота считается на владельца из токена,
+	// а не на адрес прокси, за которым сидят все клиенты сразу.
+	api := r.Group("/api/v1", middleware.Auth(keys), middleware.RateLimitFromEnv(config.Env))
 	notes.Register(api)
 	boards.Register(api)
 	sharedKeys, err := sharedconfig.JWT(false)

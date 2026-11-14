@@ -10,6 +10,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.28.0
+	golang.org/x/time v0.16.0
 )
 
 replace github.com/limon4ik-black/AI-buddy => ..
