@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "dataset_name": "company-knowledge",
+  "version": "v1",
+  "embedding_model": "Qwen/Qwen3-Embedding-0.6B",
+  "embedding_dimensions": 1024,
+  "visibility": "company",
+  "files": [
+    {
+      "file": "QA-profile.json",
+      "sha256": "7312070653f9e90a81a701e725871ba7bec62c98cfe62095f689ac18e2ae5af3",
+      "document_id": "00cd576b27e01d0c33aa01261be2aac5f33094831028f0eda675af1b167e7a8e",
+      "chunks": 9
+    },
+    {
+      "file": "analytics-levels.json",
+      "sha256": "affaf9a109606f8670eeb0ce3a19b0d73f10173567b3467c8fb7c78fb180a065",
+      "document_id": "6e96717c9bff2e23c50b5baabd62d2f76925177114afbf3fd7669b79cb20e291",
+      "chunks": 13
+    },
+    {
+      "file": "analytics-management.json",
+      "sha256": "0b66736e20c98dc5fe318e70722e2c703b277e5c0282813c263bb47ec6ed0051",
+      "document_id": "729d226bae2beb3c0a9740827f0a27e3dc42f7c504ffd1978b9219b2730cd51d",
+      "chunks": 34
+    },
+    {
+      "file": "avito-developer-practice.json",
+      "sha256": "0ff8eee5f7dd1308a493c964a9d9e7c7fc4875c31f8a9702215f80f6fd8f13c2",
+      "document_id": "c126f0a8afb63ae90fdbd1acd72f80673f2f2bf29ef52cf255525a1988306b50",
+      "chunks": 27
+    },
+    {
+      "file": "avito-history.json",
+      "sha256": "e893fb1be4bd77da2f2d647eb90a59ecca725d302e17418e0e130c1b8170beaa",
+      "document_id": "200e80719c5e18403c7e5c8ab32a8f343629f7e515be8aa27eb906e9e0755a29",
+      "chunks": 15
+    },
+    {
+      "file": "avito-open-source.json",
+      "sha256": "8f81550f69f6552e2e160c45c72b2776d5f0438ed6d50616cc593241fdf7a8d7",
+      "document_id": "1671846fe9bf76b51039bcd8a4b0e4cb29b8828aaaa2083692a025a52497fdfe",
+      "chunks": 3
+    },
+    {
+      "file": "avito-paas.json",
+      "sha256": "9acec0b4d4da17c4deab8f74b18dd77bc0f9f3f557c289ba31ed161984414b77",
+      "document_id": "88af7cfdca9846971fecb68e2f9bc86d18cdd75d24c4c887b06c1fd76f657164",
+      "chunks": 4
+    },
+    {
+      "file": "bi-developers.json",
+      "sha256": "403b6cbf47a20a8fa5561ea38d187a63bac62e3cd0ac44d83ada70326f9252b7",
+      "document_id": "403e9230652d553eaadb3a777ab475bbfd5d5e0432e9f312a9a4ef04d2e082fa",
+      "chunks": 56
+    },
+    {
+      "file": "books.json",
+      "sha256": "ba4e1d7eb155deed769baf52ddd14d6eaee51f7b9ae04e0ada841466bb50b368",
+      "document_id": "6e6b6925e951f72ef9ab5dcb38e2e58b20055ee8fbda2bb7d028c3e14d2016e7",
+      "chunks": 107
+    },
+    {
+      "file": "design-levels.json",
+      "sha256": "2f49a3d9e8a565baadeb3e38f31f4e27afdccee58e479b0319a5ac829d4eb8a3",
+      "document_id": "b1aaa984258eab40a97ab1d032ae8ec318135417c50654799ea038cddf89811b",
+      "chunks": 65
+    },
+    {
+      "file": "design-management.json",
+      "sha256": "79939665168e522c87acf9d6c0aae9bd585be3682e1327274135d2cd2119b466",
+      "document_id": "f946a65e9186b86d408b5dfb6a6fceec6919fb3268443226eae77d5ab6b4788a",
+      "chunks": 46
+    },
+    {
+      "file": "developer-profile.json",
+      "sha256": "593b7e06969e6e497a589c1743c70e3208f5d1607e844e86f90300296a98d73f",
+      "document_id": "4b90f676fe975bf68a79dc22ecadae93feec4236075ba2bba432555fd5dec917",
+      "chunks": 51
+    },
+    {
+      "file": "development-principles.json",
+      "sha256": "22916005520d4410ce1082c0dc133901941aa90bab8e71fb1eb02d7a50f9ab2c",
+      "document_id": "ac7e12fd2be120de9464278af9cc719a6a0c97fd6403abe27c46939207d81d2b",
+      "chunks": 26
+    },
+    {
+      "file": "ds-skills.json",
+      "sha256": "7866beeaf87d462569ed221c65dcbc84ed0ccffe46052c86997e6998bb995eb5",
+      "document_id": "a8acd0cafc87620954e725c157693b3f4044200723160f79005a449a9bcc9a95",
+      "chunks": 49
+    },
+    {
+      "file": "goal-setting.json",
+      "sha256": "b2d53f7b45f70e85cabb3995ae5bde6851c56146624bed5ecc6e32cb4d4c7a52",
+      "document_id": "ea0c4dcbf6d9ec458c93ddb6acc156a31315fd81bcd24a67f82de97e4f325015",
+      "chunks": 10
+    },
+    {
+      "file": "mission-and-values.json",
+      "sha256": "1a8074793798f7d37055f05916598f72719a8ee082d73a4eede4696c4435d7ad",
+      "document_id": "e90b9132c7238904affd0fe67983fe418ce28e0c9612601ac6641baf2a206083",
+      "chunks": 7
+    },
+    {
+      "file": "neighborhood-agreement.json",
+      "sha256": "e1e681259c254ec242e03feac926a42fd94c96d6ed8a19b5adfcc8494d3e2663",
+      "document_id": "dfdf9492b2394302a69a8b41575308bec946418e9244da2e9546277f0d66cce7",
+      "chunks": 6
+    },
+    {
+      "file": "processes-and-standards.json",
+      "sha256": "f5b81122c95851cef7c7a7083ba9c6a74594f3f0d3bba07651afc03378098aaa",
+      "document_id": "43d8056b043cb1e7ff052422f91e36d6f3f1d90abc7e76f301b0afa501228724",
+      "chunks": 4
+    },
+    {
+      "file": "product-levels.json",
+      "sha256": "e6fc989d75c0fc69a861abb6feab4a35134177d9d3cd9b64d7598b7693bc0644",
+      "document_id": "38cd65fce4df641af7ad7498f264740cf53e51567575f4ceed9433d5d3991625",
+      "chunks": 34
+    },
+    {
+      "file": "spt.json",
+      "sha256": "1a374e5f9ca1323faaac5be4da1bf66ed287af33e7b5d9d82e5943730712808c",
+      "document_id": "21ef0b976560d1fb333e323bebb929fdfc9af3f768fa64b111971b2f8a456c3b",
+      "chunks": 5
+    },
+    {
+      "file": "structure.json",
+      "sha256": "a0ae9cafc6f54a853623a9d3122cebecc588dfd5ea6967f48df35e62dfef1a2b",
+      "document_id": "5e2ea25a0716ca48f8e1d68bbbd656b12ca9c21d9b9ae796695f1efa41278398",
+      "chunks": 7
+    },
+    {
+      "file": "techlead-profile.json",
+      "sha256": "7ab1799b31333eb08793ee480c0142506301c029f2f2bda5fdaf6e5f7b7b55da",
+      "document_id": "0bbbaf89a6e3d2ff5be6baf7b18c442b6b51a23cd6ce08a03219a31f758f9445",
+      "chunks": 52
+    },
+    {
+      "file": "training-and-development.json",
+      "sha256": "ceb2e64baf3baada68464509b914abe23d0c9a229a3c1c1b4e9f1d24d679e09c",
+      "document_id": "fd3f61732bdc79b434bb695b95dd96ff1c6d281a636dbbb998d6dc645d8e845c",
+      "chunks": 7
+    }
+  ]
+}

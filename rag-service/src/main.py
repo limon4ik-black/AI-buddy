@@ -127,7 +127,7 @@ async def generate(body: GenerateRequest, request: Request,
     body = body.model_copy(update={"userContext": context})
     allowed = context["allowedDocumentIds"]
     try:
-        result = await request.app.state.service.answer(body, allowed)
+        result = await request.app.state.service.answer(body, allowed, authorization=authorization)
         action = None
         question = body.message.lower()
         if any(word in question for word in ("доступ", "подключ", "инструмент")):

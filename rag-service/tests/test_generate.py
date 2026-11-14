@@ -62,6 +62,7 @@ def test_generate_fetches_info_with_jwt_and_returns_chat_contract():
     assert response.status_code == 200
     assert len(app.state.info_requests) == 1
     assert app.state.service.answer.call_args.args[1] == ["guide"]
+    assert app.state.service.answer.call_args.kwargs == {"authorization": "Bearer user-jwt"}
     assert response.json() == {
         "answer": "Read the guide", "mode": "rag",
         "sources": [{"documentId": "guide", "title": "Guide", "section": "Setup"}],
