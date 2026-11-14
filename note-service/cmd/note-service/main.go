@@ -18,6 +18,7 @@ import (
 	_ "github.com/limon4ik-black/AI-buddy/note-service/docs" // регистрирует спеку из аннотаций
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/config"
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/logger"
+	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/metrics"
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/middleware"
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/postgres"
 	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/response"
@@ -64,7 +65,7 @@ func main() {
 
 	r := gin.New()
 	// CORS первым: preflight уходит без Authorization, авторизация его бы отвергла.
-	r.Use(middleware.Logger(log), middleware.Recover(log), middleware.CORS(strings.Split(config.Env("CORS_ORIGINS", defaultOrigins), ",")))
+	r.Use(middleware.Logger(log), middleware.Recover(log), middleware.CORS(strings.Split(config.Env("CORS_ORIGINS", defaultOrigins), ",")), metrics.Middleware("note-service"))
 	// Без авторизации: страница должна открываться до того, как в неё ввели токен.
 	// Пустой путь библиотека не отдаёт (404), поэтому «/swagger» и «/swagger/» ведём на index.html.
 	swagger := ginSwagger.WrapHandler(swaggerFiles.Handler)
@@ -92,6 +93,9 @@ func main() {
 	r.PATCH("/api/v1/checklist/tasks/:id", gin.WrapH(onboardingAPI))
 	r.GET("/api/v1/information", gin.WrapH(onboardingAPI))
 	r.GET("/api/v1/information/:id", gin.WrapH(onboardingAPI))
+
+	// /metrics без авторизации и только внутри сети: его дёргает Prometheus.
+	r.GET("/metrics", gin.WrapH(metrics.Handler()))
 
 	// /healthz без авторизации: его дёргает healthcheck из compose и проверяет заодно БД.
 	r.GET("/healthz", func(c *gin.Context) {

@@ -25,7 +25,12 @@ func Middleware(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-store")
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), requestKey, id)))
+		// Дальше идёт копия запроса, но шаблон маршрута переносим обратно:
+		// ServeMux проставляет r.Pattern уже копии, а мидлварь метрик читает
+		// его снаружи — без этого метка пути была бы пустой («unmatched»).
+		inner := r.WithContext(context.WithValue(r.Context(), requestKey, id))
+		next.ServeHTTP(w, inner)
+		r.Pattern = inner.Pattern
 	})
 }
 

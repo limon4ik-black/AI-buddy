@@ -1,0 +1,15 @@
+apiVersion: 1
+
+providers:
+  # Провайдер один на всех: Grafana строит папки по подпапкам каталога дашбордов,
+  # а в подпапку со своим именем каждый сервис монтирует свои дашборды.
+  # Добавить сервис = добавить подпапку в общем compose, общего файла не правим.
+  - name: services
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

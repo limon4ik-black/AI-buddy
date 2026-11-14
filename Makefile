@@ -1,14 +1,23 @@
 .DEFAULT_GOAL := up
 COMPOSE = docker compose --env-file .env -f deploy/compose.yaml
-.PHONY: configure up down logs build config rag rag-import
+METRICS = docker compose --env-file .env -f observability/compose.yaml
+.PHONY: configure up down logs build config rag rag-import metrics-up metrics-down metrics-logs
 configure:
 	@sh deploy/configure.sh
 up: configure
 	$(COMPOSE) up -d --build
+	$(METRICS) up -d
 down:
+	$(METRICS) down --remove-orphans 2>/dev/null || true
 	$(COMPOSE) --profile rag down --remove-orphans
 logs:
 	$(COMPOSE) logs -f
+metrics-up: configure
+	$(METRICS) up -d
+metrics-down:
+	$(METRICS) down --remove-orphans 2>/dev/null || true
+metrics-logs:
+	$(METRICS) logs -f
 build: configure
 	$(COMPOSE) build
 config: configure

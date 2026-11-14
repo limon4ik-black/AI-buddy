@@ -1,0 +1,12 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    # uid фиксируем: на него ссылаются панели дашборда, иначе после пересоздания
+    # контейнера Grafana выдала бы новый uid и панели остались бы пустыми.
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

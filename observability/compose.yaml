@@ -1,0 +1,62 @@
+# Общая обсервабилити на всю репу: Prometheus собирает /metrics со всех сервисов,
+# Grafana рисует. Живёт отдельным проектом докера и отдельным compose, чтобы
+# не переписывать общий deploy/compose.yaml: сеть у них одна (app), поэтому
+# цели резолвятся по именам сервисов основного стека.
+#
+# Запуск: make up (он поднимает и основной стек, и это), отдельно — make metrics-up.
+name: ai-buddy-observability
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    container_name: ai-buddy-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Цели — по файлу на сервис: команда сервиса владеет своим файлом и не правит общий.
+      - ./prometheus/targets:/etc/prometheus/targets:ro
+      - prometheus_data:/prometheus
+    ports: ['127.0.0.1:9090:9090']
+    networks: [app]
+    restart: unless-stopped
+
+  grafana:
+    # Полный образ, НЕ `-slim`: в slim-сборке Grafana 13 нет плагина Prometheus,
+    # и панели останутся без источника данных.
+    image: grafana/grafana:13.2
+    container_name: ai-buddy-grafana
+    environment:
+      # Логин/пароль интерфейса; переопределяются в корневом .env.
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      # Домашняя страница — сразу дашборд (пока он единственный). Когда дашбордов
+      # станет несколько, сюда стоит положить общий обзорный.
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/note-service/note-service.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # Дашборды остаются владением сервисов: каждый монтирует свою папку
+      # в подпапку со своим именем, а Grafana разложит их по папкам.
+      - ../note-service/observability/dashboards:/var/lib/grafana/dashboards/note-service:ro
+      - ../auth-service/observability/dashboards:/var/lib/grafana/dashboards/auth:ro
+      - ../employee-service/observability/dashboards:/var/lib/grafana/dashboards/employee:ro
+      - ../chat-service/observability/dashboards:/var/lib/grafana/dashboards/chat:ro
+      - ../gateway-service/observability/dashboards:/var/lib/grafana/dashboards/gateway:ro
+      - grafana_data:/var/lib/grafana
+    ports: ['127.0.0.1:3000:3000']
+    networks: [app]
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  # Сеть создаёт основной стек (deploy/compose.yaml), поэтому его поднимают первым.
+  app:
+    external: true
+    name: ai-buddy_app
