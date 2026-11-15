@@ -14,7 +14,7 @@ export function useBoards() {
     try {
       setItems((await boards.list()).items);
     } catch (e) {
-      setItems([]);
+      setItems((list) => list || []);
       setError(errorText(e));
     } finally {
       setBusy(false);

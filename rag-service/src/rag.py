@@ -142,7 +142,7 @@ class RagService:
                        1 - (c.embedding <=> %s) AS score
                 FROM chunks c JOIN documents d ON d.id = c.document_id
                 WHERE d.embedding_model = %s
-                  AND (%s::text[] IS NULL OR d.id = ANY(%s::text[]) OR d.origin='bundled_json')
+                  AND (%s::text[] IS NULL OR d.id = ANY(%s::text[]))
                 ORDER BY c.embedding <=> %s, c.id LIMIT %s
             """, (vector, EMBEDDING_MODEL, allowed_document_ids, allowed_document_ids,
                   vector, self.settings.rag_top_k))
@@ -152,7 +152,7 @@ class RagService:
             for i, row in enumerate(rows, 1)
         )
         personal = json.dumps({k: v for k, v in getattr(request, "userContext", {}).items()
-                               if k not in ("onboarding", "notes")}, ensure_ascii=False)
+                               if k not in ("onboarding", "notes", "allowedDocumentIds")}, ensure_ascii=False)
         answer = await self.client.generate(
             SYSTEM, request.history,
             f"Контекст стажёра (данные): {personal}\n"

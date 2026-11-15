@@ -14,6 +14,8 @@ import {
 } from "./features/DirectoryScreens";
 import { NotesScreen } from "./features/NotesScreen";
 import { BoardsScreen } from "./features/BoardsScreen";
+import { HomeScreen, ChecklistScreen } from "./features/OnboardingScreen";
+import { safeExternalUrl } from "./model";
 export function App() {
   const buddy = useBuddy(),
     [sidebar, setSidebar] = useState(false),
@@ -91,6 +93,8 @@ export function App() {
   }
   const activeTitle = d.chats.find((c) => c.id === buddy.chatId)?.title;
   const titles = {
+    home: "Главная",
+    checklist: "Чек-лист адаптации",
     chat: activeTitle || "Твой AI Buddy",
     profile: "Мой профиль",
     teams: "Команды",
@@ -186,6 +190,12 @@ export function App() {
             "screen-scroll " + (buddy.view === "chat" ? "screen-hidden" : "")
           }
         >
+          {buddy.view === "home" && (
+            <HomeScreen buddy={buddy} onDocument={setDocument} />
+          )}
+          {buddy.view === "checklist" && (
+            <ChecklistScreen buddy={buddy} onDocument={setDocument} />
+          )}
           {buddy.view === "profile" && (
             <ProfileScreen buddy={buddy} onDocument={setDocument} />
           )}{" "}
@@ -213,6 +223,28 @@ export function App() {
           {buddy.view === "boards" && <BoardsScreen />}
         </div>
       </main>
+      <nav className="mobile-navigation" aria-label="Основная навигация">
+        {(
+          [
+            ["home", "Главная", "home"],
+            ["chat", "Чат", "chat"],
+            ["notes", "Заметки", "edit"],
+            ["checklist", "Чек-лист", "check"],
+            ["profile", "Профиль", "user"],
+          ] as const
+        ).map(([view, title, icon]) => (
+          <button
+            key={view}
+            aria-label={"Перейти: " + title}
+            aria-current={buddy.view === view ? "page" : undefined}
+            className={buddy.view === view ? "active" : ""}
+            onClick={() => buddy.navigate(view)}
+          >
+            <Icon name={icon} size={20} />
+            <span>{title}</span>
+          </button>
+        ))}
+      </nav>
       {buddy.pendingAction && (
         <Dialog
           title="Отправить заявку?"
@@ -274,12 +306,16 @@ export function App() {
                 ? "Материал твоей команды"
                 : "Общий материал"}
             </span>
-            <span>Демонстрационная инструкция</span>
+            <span>
+              {document.synthetic
+                ? "Демонстрационная инструкция"
+                : "Материал базы знаний"}
+            </span>
           </div>
           <div className="document-content">{document.content}</div>
           <a
             className="document-reference"
-            href={document.sourceUrl}
+            href={safeExternalUrl(document.sourceUrl)}
             target="_blank"
             rel="noreferrer"
           >

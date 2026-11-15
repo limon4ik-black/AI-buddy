@@ -130,7 +130,13 @@ def test_note_sync_preserves_bundle_and_company_retrieval_keeps_note_acl(db, tmp
         service.embed = lambda _: np.array([1.0] + [0.0] * 1023, dtype='float32')
         await service.pool.open()
         try:
-            result = await service.answer(SimpleNamespace(history=[], message='Guide', userContext={}), [])
+            request = SimpleNamespace(history=[], message='Guide', userContext={})
+            # Note owns all citation ACLs, including bundled company documents.
+            # An empty/revoked allowlist must not send those documents to the LLM.
+            denied = await service.answer(request, [])
+            assert denied['sources'] == []
+            assert '<context>\n\n</context>' in service.client.generate.call_args.args[-1]
+            result = await service.answer(request, ['doc'])
             assert result['sources']
             assert {source['documentId'] for source in result['sources']} == {'doc'}
             await service.index_documents()

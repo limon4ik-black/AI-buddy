@@ -70,6 +70,43 @@ def test_generate_fetches_info_with_jwt_and_returns_chat_contract():
     }
 
 
+def test_generate_accepts_previously_stored_long_assistant_answer():
+    client = prepare()
+    body = payload()
+    body["history"] = [{"role": "assistant", "content": "a" * 12000}]
+    response = client.post("/internal/v1/generate", json=body, headers=HEADERS)
+    assert response.status_code == 200
+    assert app.state.service.answer.call_args.args[0].history[0].content == "a" * 12000
+
+
+def test_generate_rejects_history_beyond_chat_storage_bound():
+    client = prepare()
+    body = payload()
+    body["history"] = [{"role": "assistant", "content": "a" * 32001}]
+    assert client.post("/internal/v1/generate", json=body, headers=HEADERS).status_code == 422
+    app.state.service.answer.assert_not_called()
+
+
+@pytest.mark.parametrize("upstream_status,expected", [(429, 429), (503, 503), (401, 502), (500, 502)])
+def test_generate_preserves_rate_limit_without_exposing_provider_details(upstream_status, expected):
+    client = prepare()
+    request = httpx.Request("POST", "https://provider.invalid/private-api-key")
+    response = httpx.Response(upstream_status, request=request)
+    app.state.service.answer.side_effect = httpx.HTTPStatusError(
+        "private-api-key", request=request, response=response)
+    result = client.post("/internal/v1/generate", json=payload(), headers=HEADERS)
+    assert result.status_code == expected
+    assert "private-api-key" not in result.text
+
+
+def test_generate_network_error_returns_retryable_unavailable():
+    client = prepare()
+    app.state.service.answer.side_effect = httpx.ConnectTimeout("private-network-details")
+    result = client.post("/internal/v1/generate", json=payload(), headers=HEADERS)
+    assert result.status_code == 503
+    assert "private-network-details" not in result.text
+
+
 def test_generate_uses_authoritative_info_acl_and_profile():
     trusted = context()
     trusted["tools"] = []

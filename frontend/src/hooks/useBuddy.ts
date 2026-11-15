@@ -26,7 +26,7 @@ export function useBuddy() {
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [codeSent, setCodeSent] = useState(false);
-  const [view, setView] = useState<View>("chat"),
+  const [view, setView] = useState<View>("home"),
     [chatId, setChatId] = useState<string | null>(null),
     [messages, setMessages] = useState<Message[]>([]),
     [question, setQuestion] = useState(""),
@@ -50,16 +50,21 @@ export function useBuddy() {
       content: string;
       chatId: string;
     } | null>(null),
-    taskLock = useRef(false);
+    taskLock = useRef(false),
+    sendLock = useRef(false),
+    generationLock = useRef(false);
   const clearSession = useCallback(() => {
     epoch.current++;
     setData(null);
-    setView("chat");
+    setView("home");
     setChatId(null);
     activeChat.current = null;
     setMessages([]);
     setQuestion("");
     setRetryId(null);
+    setLoadingChat(false);
+    setSending(false);
+    setGenerating(false);
     setPendingAction(null);
     actionKeys.current.clear();
     pendingSend.current = null;
@@ -212,6 +217,7 @@ export function useBuddy() {
     setNotice("");
   }
   function newChat() {
+    if (sendLock.current || generationLock.current) return;
     activeChat.current = null;
     setChatId(null);
     setMessages([]);
@@ -221,6 +227,7 @@ export function useBuddy() {
     navigate("chat");
   }
   async function selectChat(id: string) {
+    if (sendLock.current || generationLock.current) return;
     const current = epoch.current;
     activeChat.current = id;
     setChatId(id);
@@ -247,6 +254,8 @@ export function useBuddy() {
     }
   }
   async function generate(id: string, messageId: string) {
+    if (generationLock.current) return;
+    generationLock.current = true;
     const current = epoch.current;
     setGenerating(true);
     setRetryId(messageId);
@@ -264,12 +273,21 @@ export function useBuddy() {
     } catch (e) {
       if (current === epoch.current) setError(errorText(e));
     } finally {
-      setGenerating(false);
+      generationLock.current = false;
+      if (current === epoch.current) setGenerating(false);
     }
   }
   async function send() {
     const content = question.trim();
-    if (!content || sending || generating || !data) return;
+    if (
+      !content ||
+      sendLock.current ||
+      generationLock.current ||
+      loadingChat ||
+      !data
+    )
+      return;
+    sendLock.current = true;
     const current = epoch.current;
     setSending(true);
     setError("");
@@ -279,6 +297,7 @@ export function useBuddy() {
         const chat = await api.request<Chat>("/chats", "POST", {
           title: Array.from(content).slice(0, 40).join(""),
         });
+        if (current !== epoch.current) return;
         id = chat.id;
         activeChat.current = id;
         setChatId(id);
@@ -307,9 +326,10 @@ export function useBuddy() {
       setSending(false);
       await generate(id, message.id);
     } catch (e) {
-      setError(errorText(e));
+      if (current === epoch.current) setError(errorText(e));
     } finally {
-      setSending(false);
+      sendLock.current = false;
+      if (current === epoch.current) setSending(false);
     }
   }
   async function renameChat(id: string, title: string) {
@@ -371,7 +391,9 @@ export function useBuddy() {
               tasks,
               total: tasks.length,
               completed,
-              percent: Math.floor((completed * 100) / tasks.length),
+              percent: tasks.length
+                ? Math.floor((completed * 100) / tasks.length)
+                : 0,
               nextTask: tasks.find((t) => t.status !== "completed") || null,
             },
           }

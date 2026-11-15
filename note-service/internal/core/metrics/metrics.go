@@ -28,10 +28,15 @@ func Middleware(service string) gin.HandlerFunc {
 		}
 		done := sharedmetrics.InFlight(service)
 		start := time.Now()
+		defer func() {
+			done()
+			if failure := recover(); failure != nil {
+				sharedmetrics.Observe(service, c.Request.Method, c.FullPath(), "500", time.Since(start).Seconds())
+				panic(failure)
+			}
+			sharedmetrics.Observe(service, c.Request.Method, c.FullPath(), strconv.Itoa(c.Writer.Status()), time.Since(start).Seconds())
+		}()
 
 		c.Next()
-
-		done()
-		sharedmetrics.Observe(service, c.Request.Method, c.FullPath(), strconv.Itoa(c.Writer.Status()), time.Since(start).Seconds())
 	}
 }

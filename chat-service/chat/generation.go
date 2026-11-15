@@ -69,6 +69,13 @@ func (c *Service) generate(r *http.Request) (Message, bool, error) {
 	}
 	answer, e := httpclient.Call[contracts.GenerateOutput](r.Context(), c.Client, "POST", c.RAGURL+"/internal/v1/generate", c.RAGToken, r.Header.Get("Authorization"), contracts.GenerateInput{RequestID: httpapi.RequestID(r.Context()), UserID: userID, Message: msg.Content, History: history, UserContext: ctx})
 	if e != nil {
+		var upstream *httpclient.UpstreamError
+		if errors.As(e, &upstream) && upstream.StatusCode == 503 {
+			return Message{}, false, httpapi.Problem(503, "ai_connection_unavailable", "AI-сервис временно недоступен. Повторите запрос позже.")
+		}
+		if errors.As(e, &upstream) && upstream.StatusCode == 429 {
+			return Message{}, false, httpapi.Problem(429, "ai_rate_limited", "Лимит AI-провайдера. Повторите запрос через минуту.")
+		}
 		return Message{}, false, httpapi.Problem(502, "generation_unavailable", "Не удалось получить ответ. Сообщение сохранено, повторите генерацию")
 	}
 	if strings.TrimSpace(answer.Answer) == "" || len(answer.Answer) > 32000 || (answer.Mode != "mock" && answer.Mode != "rag") {

@@ -13,3 +13,7 @@
 **/__pycache__
 docs
 tests
+frontend
+rag-service
+observability
+reports

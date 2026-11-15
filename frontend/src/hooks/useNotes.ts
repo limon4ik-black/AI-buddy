@@ -14,7 +14,7 @@ export function useNotes() {
     try {
       setItems((await notes.list()).items);
     } catch (e) {
-      setItems([]);
+      setItems((list) => list || []);
       setError(errorText(e));
     } finally {
       setBusy(false);

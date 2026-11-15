@@ -67,11 +67,15 @@ export function BoardsScreen() {
         <h1>Доски</h1>
         <p>
           Рисуй схемы и раскладывай стикеры. Доска сохраняется сама, а видишь её
-          только ты — владелец берётся из токена.
+          только ты.
         </p>
       </div>
       <div className="catalog-toolbar">
-        <button className="primary-button" onClick={() => void addBoard()} disabled={store.busy}>
+        <button
+          className="primary-button"
+          onClick={() => void addBoard()}
+          disabled={store.busy}
+        >
           <Icon name="plus" size={17} />
           Создать доску
         </button>

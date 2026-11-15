@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 const paths = {
+  home: "m3 10 9-7 9 7v11h-6v-7H9v7H3V10Z",
   plus: "M12 5v14M5 12h14",
   send: "M12 19V5m-6 6 6-6 6 6",
   search: "m20 20-5-5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0",

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Document } from "../api";
 import type { Workspace } from "../model";
-import { initials, roleLabel, teamColors } from "../model";
+import { initials, roleLabel, teamColors, safeExternalUrl } from "../model";
 import { Icon } from "../components/Icon";
 export function TeamsScreen({
   data,
@@ -191,7 +191,7 @@ export function ServicesScreen({
                     <p>{s.description}</p>
                     {s.repositoryUrl && (
                       <a
-                        href={s.repositoryUrl}
+                        href={safeExternalUrl(s.repositoryUrl)}
                         target="_blank"
                         rel="noreferrer"
                       >

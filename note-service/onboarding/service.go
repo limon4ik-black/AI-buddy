@@ -216,7 +216,7 @@ func (s *Service) export(w http.ResponseWriter, r *http.Request) error {
 		}
 		limit = v
 	}
-	docs, err := postgres.Query[contracts.Document](r.Context(), s.DB, "SELECT * FROM onboarding.knowledge_documents WHERE id>$1 ORDER BY id LIMIT $2", r.URL.Query().Get("after"), limit+1)
+	docs, err := postgres.Query[contracts.Document](r.Context(), s.DB, "SELECT * FROM onboarding.knowledge_documents WHERE category<>'bundled_json' AND id>$1 ORDER BY id LIMIT $2", r.URL.Query().Get("after"), limit+1)
 	if err != nil {
 		return err
 	}

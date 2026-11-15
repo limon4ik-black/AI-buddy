@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/limon4ik-black/AI-buddy/note-service/internal/core/middleware"
+	"go.uber.org/zap"
 )
 
 // Проверяем главное свойство: в метрику попадает шаблон маршрута, а не конкретный id.
@@ -33,6 +35,28 @@ func TestMiddlewareKeepsRouteTemplate(t *testing.T) {
 	}
 	if !strings.Contains(body, "http_request_duration_seconds_bucket") {
 		t.Fatal("нет гистограммы длительности")
+	}
+}
+
+// Recover must finish the error response before metrics records its status.
+func TestRecoveredPanicCountsFailureAndReleasesInFlight(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(Middleware("panic-note-test"), middleware.Recover(zap.NewNop()))
+	r.GET("/panic", func(c *gin.Context) { panic("failure") })
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/panic", nil))
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("panic response status: %d", w.Code)
+	}
+	metrics := httptest.NewRecorder()
+	Handler().ServeHTTP(metrics, httptest.NewRequest("GET", "/metrics", nil))
+	body := metrics.Body.String()
+	if !strings.Contains(body, `http_requests_total{method="GET",path="/panic",service="panic-note-test",status="500"} 1`) {
+		t.Fatalf("recovered panic not counted as500:\n%s", body)
+	}
+	if !strings.Contains(body, `http_requests_in_flight{service="panic-note-test"} 0`) {
+		t.Fatalf("in-flight leaked after recoveredpanic:\n%s", body)
 	}
 }
 

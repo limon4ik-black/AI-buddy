@@ -72,10 +72,18 @@ func Middleware(service string) func(http.Handler) http.Handler {
 			done := InFlight(service)
 			start := time.Now()
 			rec := &recorder{ResponseWriter: w, status: http.StatusOK}
+			defer func() {
+				done()
+				if failure := recover(); failure != nil {
+					// net/http closes the connection on an unhandled panic; count the
+					// failure without swallowing it or sending a second response.
+					Observe(service, r.Method, r.Pattern, "500", time.Since(start).Seconds())
+					panic(failure)
+				}
+				Observe(service, r.Method, r.Pattern, strconv.Itoa(rec.status), time.Since(start).Seconds())
+			}()
 			r.Pattern = ""
 			next.ServeHTTP(rec, r)
-			done()
-			Observe(service, r.Method, r.Pattern, strconv.Itoa(rec.status), time.Since(start).Seconds())
 		})
 	}
 }
@@ -83,18 +91,41 @@ func Middleware(service string) func(http.Handler) http.Handler {
 // recorder запоминает код ответа для метрики.
 type recorder struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
 }
 
 func (r *recorder) WriteHeader(code int) {
+	if r.wroteHeader {
+		return
+	}
+	// Informational responses can precede the final status. 101 is final:
+	// WebSocket upgrades must retain their status in the metrics.
+	if code >= 100 && code < 200 && code != http.StatusSwitchingProtocols {
+		r.ResponseWriter.WriteHeader(code)
+		return
+	}
 	r.status = code
+	r.wroteHeader = true
 	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *recorder) Write(body []byte) (int, error) {
+	if !r.wroteHeader {
+		r.status = http.StatusOK
+		r.wroteHeader = true
+	}
+	return r.ResponseWriter.Write(body)
 }
 
 // Flush и Unwrap оставлены, чтобы через обёртку работали стриминг и Hijack —
 // иначе через шлюз перестал бы идти потоковый ответ.
 func (r *recorder) Flush() {
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		if !r.wroteHeader {
+			r.status = http.StatusOK
+			r.wroteHeader = true
+		}
 		f.Flush()
 	}
 }

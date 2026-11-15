@@ -24,6 +24,7 @@ config: configure
 	$(COMPOSE) config --quiet
 rag: configure
 	$(COMPOSE) -f deploy/rag.yaml --profile rag up -d --build
+	$(METRICS) up -d
 rag-import: configure
 	$(COMPOSE) --profile rag up -d --wait rag_postgres
 	$(COMPOSE) --profile rag build rag

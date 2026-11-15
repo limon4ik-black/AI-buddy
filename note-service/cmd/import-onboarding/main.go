@@ -23,5 +23,8 @@ func main() {
 	if err = onboarding.ImportLegacy(ctx, src, dst); err != nil {
 		log.Fatal(err)
 	}
+	if err = onboarding.RegisterBundled(ctx, dst, os.Getenv("KNOWLEDGE_DIRECTORY")); err != nil {
+		log.Fatal(err)
+	}
 	log.Print("Onboarding snapshot imported; existing Note data preserved")
 }

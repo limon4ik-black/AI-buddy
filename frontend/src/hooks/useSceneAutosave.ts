@@ -7,7 +7,11 @@ const saveDelay = 1500;
 
 // От состояния вида сохраняем только то, что относится к самой доске: зум, выделение и
 // курсоры у каждого свои, и хранить их — значит переписывать доску на каждое движение мыши.
-const keepAppState = ["viewBackgroundColor", "gridSize", "gridModeEnabled"] as const;
+const keepAppState = [
+  "viewBackgroundColor",
+  "gridSize",
+  "gridModeEnabled",
+] as const;
 
 export function cleanAppState(appState: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
@@ -18,9 +22,10 @@ export function cleanAppState(appState: Record<string, unknown>) {
 export type SaveStatus = "saved" | "saving" | "conflict" | "error";
 
 const clock = () =>
-  new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(
-    new Date(),
-  );
+  new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date());
 
 // useSceneAutosave копит изменения холста и отправляет сцену целиком с ожидаемой версией.
 // delay вынесен в параметр, чтобы тесты не ждали полторы секунды.
@@ -33,14 +38,19 @@ export function useSceneAutosave(
     [status, setStatus] = useState<SaveStatus>("saved"),
     [message, setMessage] = useState(""),
     [savedAt, setSavedAt] = useState(""),
+    [initialScene, setInitialScene] = useState(board.scene),
     [revision, setRevision] = useState(0);
   const scene = useRef<Scene>(board.scene),
     version = useRef(board.version),
     currentTitle = useRef(board.title),
-    lastSent = useRef(""),
+    lastSent = useRef(
+      JSON.stringify({ title: board.title, scene: board.scene }),
+    ),
+    onSavedRef = useRef(onSaved),
     saving = useRef(false),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  onSavedRef.current = onSaved;
   const save = useCallback(async () => {
     if (timer.current) {
       clearTimeout(timer.current);
@@ -54,7 +64,10 @@ export function useSceneAutosave(
       while (true) {
         const titleSnapshot = currentTitle.current;
         const sceneSnapshot = scene.current;
-        const body = JSON.stringify({ title: titleSnapshot, scene: sceneSnapshot });
+        const body = JSON.stringify({
+          title: titleSnapshot,
+          scene: sceneSnapshot,
+        });
         if (body === lastSent.current) break;
         setStatus("saving");
         const updated = await boards.save(
@@ -65,7 +78,7 @@ export function useSceneAutosave(
         );
         version.current = updated.version;
         lastSent.current = body;
-        onSaved(updated);
+        onSavedRef.current(updated);
       }
       setStatus("saved");
       setMessage("");
@@ -81,7 +94,7 @@ export function useSceneAutosave(
     } finally {
       saving.current = false;
     }
-  }, [board.id, onSaved]);
+  }, [board.id]);
 
   const schedule = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -129,19 +142,23 @@ export function useSceneAutosave(
     try {
       const fresh = await boards.get(board.id);
       scene.current = fresh.scene;
+      setInitialScene(fresh.scene);
       version.current = fresh.version;
       currentTitle.current = fresh.title;
-      lastSent.current = "";
+      lastSent.current = JSON.stringify({
+        title: fresh.title,
+        scene: fresh.scene,
+      });
       setTitleState(fresh.title);
       setStatus("saved");
       setMessage("");
       setRevision((r) => r + 1); // холст пересоздаём: так в него попадают данные с сервера
-      onSaved(fresh);
+      onSavedRef.current(fresh);
     } catch (e) {
       setStatus("error");
       setMessage(errorText(e));
     }
-  }, [board.id, onSaved]);
+  }, [board.id]);
 
   return {
     title,
@@ -152,6 +169,6 @@ export function useSceneAutosave(
     onSceneChange,
     reload,
     revision,
-    initialScene: board.scene,
+    initialScene,
   };
 }

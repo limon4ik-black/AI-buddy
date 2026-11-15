@@ -35,8 +35,8 @@ export function NotesScreen() {
         <span className="eyebrow">ЛИЧНЫЙ БЛОКНОТ</span>
         <h1>Мои заметки</h1>
         <p>
-          Заметки хранит отдельный сервис. Видишь их только ты: владелец берётся
-          из твоего токена.
+          Мысли, ссылки и договорённости, которые хочется сохранить под рукой.
+          Эти заметки видишь только ты.
         </p>
       </div>
       <form className="notes-composer" onSubmit={add}>
@@ -61,9 +61,18 @@ export function NotesScreen() {
         </button>
       </form>
       {store.error && (
-        <p className="inline-error" role="alert">
-          {store.error}
-        </p>
+        <div className="notes-error">
+          <p className="inline-error" role="alert">
+            {store.error}
+          </p>
+          <button
+            className="text-button"
+            disabled={store.busy}
+            onClick={() => void store.reload()}
+          >
+            Повторить загрузку
+          </button>
+        </div>
       )}
       {store.items === null ? (
         <div className="empty-panel">
