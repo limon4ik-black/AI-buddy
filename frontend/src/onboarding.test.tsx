@@ -87,7 +87,13 @@ it("shows saved notes on home and opens the working notebook", async () => {
   });
   await user.click(note);
   await screen.findByRole("heading", { name: "Мои заметки" });
-  expect(screen.getByText("Встреча с бадди Обсудить доступы")).toBeTruthy();
+  expect(
+    (
+      (await screen.findByLabelText(
+        "Текст заметки note-1",
+      )) as HTMLTextAreaElement
+    ).value,
+  ).toBe("Встреча с бадди\nОбсудить доступы");
 });
 
 it("does not let an unavailable notebook break home", async () => {

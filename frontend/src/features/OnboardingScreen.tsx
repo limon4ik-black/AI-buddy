@@ -162,9 +162,11 @@ export function Calendar({
 export function HomeScreen({
   buddy,
   onDocument,
+  onNote,
 }: {
   buddy: Buddy;
   onDocument: (doc: Document) => void;
+  onNote: (id: string) => void;
 }) {
   const d = buddy.data!,
     store = useNotes();
@@ -278,7 +280,7 @@ export function HomeScreen({
                   <button
                     key={note.id}
                     className={"dashboard-note note-color-" + i}
-                    onClick={() => buddy.navigate("notes")}
+                    onClick={() => onNote(note.id)}
                   >
                     <strong>{note.content.split("\n")[0]}</strong>
                     <span>

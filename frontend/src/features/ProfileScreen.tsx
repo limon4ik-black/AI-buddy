@@ -1,30 +1,17 @@
 import { useState, type FormEvent } from "react";
 import type { Buddy } from "../hooks/useBuddy";
-import { api, type Document } from "../api";
+import { api } from "../api";
 import { errorText } from "../hooks/useBuddy";
 import { Pet } from "../components/Pet";
 import { Icon } from "../components/Icon";
 import { dateLabel, initials, roleLabel, teamColors } from "../model";
-export function ProfileScreen({
-  buddy,
-  onDocument,
-}: {
-  buddy: Buddy;
-  onDocument: (doc: Document) => void;
-}) {
+export function ProfileScreen({ buddy }: { buddy: Buddy }) {
   const d = buddy.data!,
     team = d.teamDetails[d.profile.teamId],
     color = teamColors[d.profile.teamId];
-  const [filter, setFilter] = useState("all"),
-    [editing, setEditing] = useState(false),
+  const [editing, setEditing] = useState(false),
     [fullName, setFullName] = useState(d.profile.fullName),
     [position, setPosition] = useState(d.profile.position);
-  const filtered = d.checklist.tasks.filter(
-    (t) =>
-      filter === "all" ||
-      (filter === "done" ? t.status === "completed" : t.status !== "completed"),
-  );
-  const periods = Array.from(new Set(filtered.map((t) => t.period)));
   const buddyPerson = team.members.find((m) => m.id === team.buddyId);
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -100,9 +87,30 @@ export function ProfileScreen({
           </button>
         </form>
       )}
-      <SecuritySection email={d.account.email} onNotice={buddy.setNotice} />
+      <div className="profile-account-actions">
+        <SecuritySection email={d.account.email} onNotice={buddy.setNotice} />
+        <button
+          className="secondary-button"
+          disabled={buddy.authBusy || buddy.generating || buddy.sending}
+          onClick={() => void buddy.logout()}
+        >
+          <Icon name="logout" size={16} />
+          Выйти
+        </button>
+      </div>
       <div className="profile-grid">
         <div className="profile-main">
+          <section className="dashboard-card profile-team-card">
+            <h2>Моя команда</h2>
+            <h3>{team.name}</h3>
+            <p>{team.description}</p>
+            <button
+              className="text-button"
+              onClick={() => buddy.navigate("teams")}
+            >
+              Участники и сервисы <Icon name="arrow" size={16} />
+            </button>
+          </section>
           <section className="progress-summary">
             <div>
               <span className="section-kicker">ТВОЙ ПУТЬ В КОМАНДЕ</span>
@@ -128,131 +136,17 @@ export function ProfileScreen({
               </span>
             </div>
           </section>
-          <section className="checklist-section">
-            <div className="section-heading">
-              <h2>Чек-лист адаптации</h2>
-              <span className="count-label">{d.checklist.total} шагов</span>
-            </div>
+          <section className="dashboard-card profile-progress-card">
             <Pet
               percent={d.checklist.percent}
               busy={buddy.updatingTask || buddy.savingProfile}
             />
-            <div className="segmented" aria-label="Фильтр задач">
-              {[
-                ["all", "Все шаги"],
-                ["pending", "Осталось"],
-                ["done", "Готово"],
-              ].map(([id, title]) => (
-                <button
-                  key={id}
-                  className={filter === id ? "selected" : ""}
-                  onClick={() => setFilter(id)}
-                >
-                  {title}
-                </button>
-              ))}
-            </div>
-            {periods.length === 0 ? (
-              <div className="empty-panel">
-                <Icon name="check" size={28} />
-                <h3>
-                  {filter === "done"
-                    ? "Твои победы ещё впереди"
-                    : "Все шаги пройдены"}
-                </h3>
-                <p>Отмечай выполненные задачи — прогресс сохранится.</p>
-              </div>
-            ) : (
-              periods.map((period) => (
-                <div className="task-group" key={period}>
-                  <h3>
-                    <span /> {period}
-                  </h3>
-                  {filtered
-                    .filter((t) => t.period === period)
-                    .map((t) => (
-                      <div
-                        className={
-                          "task-row " +
-                          (t.status === "completed" ? "is-complete" : "")
-                        }
-                        key={t.id}
-                      >
-                        <label className="task-check">
-                          <input
-                            type="checkbox"
-                            aria-label={t.title}
-                            checked={t.status === "completed"}
-                            disabled={buddy.updatingTask}
-                            onChange={() =>
-                              void buddy.updateTask(
-                                t.id,
-                                t.status === "completed"
-                                  ? "pending"
-                                  : "completed",
-                              )
-                            }
-                          />
-                          <span>
-                            <Icon name="check" size={13} />
-                          </span>
-                        </label>
-                        <div className="task-copy">
-                          <strong>{t.title}</strong>
-                          <p>{t.description}</p>
-                          <div className="task-controls">
-                            {t.documentId &&
-                              d.documents.some(
-                                (doc) => doc.id === t.documentId,
-                              ) && (
-                                <button
-                                  onClick={() =>
-                                    onDocument(
-                                      d.documents.find(
-                                        (doc) => doc.id === t.documentId,
-                                      )!,
-                                    )
-                                  }
-                                >
-                                  <Icon name="book" size={12} />
-                                  Инструкция
-                                </button>
-                              )}
-                            {t.status !== "completed" && (
-                              <button
-                                className={
-                                  t.status === "in_progress"
-                                    ? "in-progress"
-                                    : ""
-                                }
-                                disabled={buddy.updatingTask}
-                                onClick={() =>
-                                  void buddy.updateTask(
-                                    t.id,
-                                    t.status === "in_progress"
-                                      ? "pending"
-                                      : "in_progress",
-                                  )
-                                }
-                              >
-                                <Icon name="clock" size={12} />
-                                {t.status === "in_progress"
-                                  ? "В работе"
-                                  : "Взять в работу"}
-                              </button>
-                            )}
-                            {t.completedAt && (
-                              <span className="completed-date">
-                                Готово {dateLabel(t.completedAt)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              ))
-            )}
+            <button
+              className="primary-button"
+              onClick={() => buddy.navigate("checklist")}
+            >
+              Открыть чек-лист <Icon name="arrow" size={16} />
+            </button>
           </section>
           <section className="requests-section">
             <div className="section-heading">

@@ -1,0 +1,10 @@
+@media (max-width:899px){
+ #auth{grid-template-columns:1fr}.hero{padding:24px}.form{padding:24px}
+ #app{grid-template-columns:1fr;grid-template-rows:1fr auto}.side{display:none}
+ .nav{display:grid;grid-template-columns:repeat(5,1fr);background:var(--sf);border-top:1px solid var(--ln);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+ .nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;padding:6px 0;border-radius:12px;color:var(--mu)}.nav button.on{color:var(--tx);font-weight:700;background:var(--gt)}.nav b{font-size:18px;font-weight:400}
+ main{padding:16px}main.full{padding:0}.hg,.g2,.g3{grid-template-columns:1fr}
+ .cw,.nw{grid-template-columns:1fr}.hm .cc,.hm .ne,.hn .nl,.hc .cl{display:none}.back{display:block}
+ .big .cd{min-height:52px}.big .cd em{display:none}.big .cd.has::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--r)}
+}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none}}

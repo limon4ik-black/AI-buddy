@@ -39,6 +39,8 @@ make up
 
 Демо-почты: `backend@buddy.test`, `frontend@buddy.test`, `analytics@buddy.test`, `qa@buddy.test`, `backend2@buddy.test`. Пароль: `BuddyDemo2026!`. После пароля введите код из Mailpit.
 
+В интерфейсе доступен вход существующих пользователей по почте, паролю и коду. Новых пользователей администратор добавляет вручную в БД. Самостоятельная регистрация и кнопка Google удалены из фронта. API авторизации не изменён.
+
 Google OAuth требует собственных GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL в `.env`. Для внешнего SMTP заполните BUDDY_SMTP_*; по умолчанию письма остаются в Mailpit. Старые SMTP_* не влияют на центральный запуск.
 
 ```sh

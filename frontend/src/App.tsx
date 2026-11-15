@@ -21,6 +21,7 @@ export function App() {
     [sidebar, setSidebar] = useState(false),
     [document, setDocument] = useState<Document | null>(null),
     [selectedTeam, setSelectedTeam] = useState(""),
+    [noteId, setNoteId] = useState<string | null>(null),
     [chatAction, setChatAction] = useState<{
       kind: "rename" | "delete";
       chat: Chat;
@@ -33,6 +34,7 @@ export function App() {
     setDocument(null);
     setChatAction(null);
     setSelectedTeam("");
+    setNoteId(null);
     setSidebar(false);
   }, [d?.profile.userId]);
   if (buddy.booting)
@@ -108,12 +110,7 @@ export function App() {
     .find((m) => m.role === "assistant");
   return (
     <div className="app-shell">
-      <Sidebar
-        buddy={buddy}
-        open={sidebar}
-        onClose={() => setSidebar(false)}
-        onChatAction={changeChat}
-      />
+      <Sidebar buddy={buddy} open={sidebar} onClose={() => setSidebar(false)} />
       <main className="main-panel">
         <header className="workspace-header">
           <div className="header-leading">
@@ -183,22 +180,36 @@ export function App() {
           </div>
         )}
         {buddy.view === "chat" && (
-          <ChatScreen buddy={buddy} onSource={openSource} />
+          <ChatScreen
+            buddy={buddy}
+            onSource={openSource}
+            onChatAction={changeChat}
+          />
         )}
         <div
           className={
-            "screen-scroll " + (buddy.view === "chat" ? "screen-hidden" : "")
+            "screen-scroll " +
+            (buddy.view === "chat"
+              ? "screen-hidden"
+              : buddy.view === "notes"
+                ? "notes-scroll"
+                : "")
           }
         >
           {buddy.view === "home" && (
-            <HomeScreen buddy={buddy} onDocument={setDocument} />
+            <HomeScreen
+              buddy={buddy}
+              onDocument={setDocument}
+              onNote={(id) => {
+                setNoteId(id);
+                buddy.navigate("notes");
+              }}
+            />
           )}
           {buddy.view === "checklist" && (
             <ChecklistScreen buddy={buddy} onDocument={setDocument} />
           )}
-          {buddy.view === "profile" && (
-            <ProfileScreen buddy={buddy} onDocument={setDocument} />
-          )}{" "}
+          {buddy.view === "profile" && <ProfileScreen buddy={buddy} />}{" "}
           {buddy.view === "teams" && (
             <TeamsScreen
               data={d}
@@ -219,7 +230,13 @@ export function App() {
           {buddy.view === "knowledge" && (
             <KnowledgeScreen data={d} onDocument={setDocument} />
           )}{" "}
-          {buddy.view === "notes" && <NotesScreen />}{" "}
+          {buddy.view === "notes" && (
+            <NotesScreen
+              key={d.profile.userId}
+              initialNoteId={noteId}
+              onBoards={() => buddy.navigate("boards")}
+            />
+          )}{" "}
           {buddy.view === "boards" && <BoardsScreen />}
         </div>
       </main>

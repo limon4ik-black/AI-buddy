@@ -1,0 +1,2 @@
+function tkHtml(t){const n=dd(t.d);return `<div class="tk ${!t.done&&n<=3&&t.tag!=='Заявки'?'hot':''} ${t.done?'dn':''}"><button class="ck ${t.done?'on':''}" onclick="tog(${t.id})" aria-label="Отметить выполненной">${t.done?'✓':''}</button><div class="tt">${esc(t.t)}<div class="mu">${t.tag} · ${fd(t.d)}${!t.done?' · '+lab(n):''}</div></div></div>`}
+function tog(id){const t=S.tasks.find(x=>x.id===id);t.done=t.done?0:1;draw()}

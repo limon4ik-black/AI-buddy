@@ -194,7 +194,7 @@ export function fakeFetch(state: MockState) {
       return state.resume
         ? response({ accessToken: "test-token" })
         : response({}, 401);
-    if (path === "/auth/login" || path === "/auth/register") {
+    if (path === "/auth/login") {
       if (body.password === "WrongPassword123!")
         return response(
           { error: { message: "Неверный email или пароль" } },

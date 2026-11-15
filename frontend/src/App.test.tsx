@@ -70,6 +70,7 @@ it("shows a team-aware chat, confirms a request and saves progress in the profil
   await user.click(screen.getByRole("button", { name: "Скрыть уведомление" }));
   await openProfile(user);
   expect(screen.getByText("DEMO-ANNA · 9 ноября")).toBeTruthy();
+  await user.click(screen.getByRole("button", { name: "Открыть чек-лист" }));
   const check = screen.getByRole("checkbox", { name: "Прочитать гид новичка" });
   expect(screen.getByText("Бобрик: Новичок")).toBeTruthy();
   await user.click(check);
@@ -77,9 +78,9 @@ it("shows a team-aware chat, confirms a request and saves progress in the profil
   await waitFor(() =>
     expect(screen.getByText("Бобрик: Освоился")).toBeTruthy(),
   );
-  expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
-    "33",
-  );
+  expect(
+    screen.getByRole("heading", { name: "Твоя адаптация — 33%" }),
+  ).toBeTruthy();
   await user.click(screen.getByRole("button", { name: "Готово" }));
   expect(screen.getAllByRole("checkbox")).toHaveLength(1);
   await user.click(screen.getByRole("button", { name: "Осталось" }));
@@ -89,15 +90,18 @@ it("shows a team-aware chat, confirms a request and saves progress in the profil
     screen.getAllByRole("button", { name: "Взять в работу" })[0],
   );
   await screen.findByRole("button", { name: "В работе" });
+  await openProfile(user);
   await user.click(screen.getByRole("button", { name: "Изменить профиль" }));
   await user.clear(screen.getByLabelText("Имя и фамилия"));
   await user.type(screen.getByLabelText("Имя и фамилия"), "Анна Тестовая");
   await user.click(screen.getByRole("button", { name: "Сохранить" }));
   await screen.findByRole("heading", { name: "Анна Тестовая" });
+  await user.click(screen.getByRole("button", { name: "Открыть чек-лист" }));
   await user.click(screen.getAllByRole("button", { name: "Инструкция" })[0]);
   await screen.findByRole("dialog", { name: "Гид новичка" });
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("dialog")).toBeNull();
+  await openProfile(user);
   await user.click(
     screen.getByRole("button", { name: "Подготовиться к встрече" }),
   );
@@ -245,6 +249,7 @@ it("retries generation and corporate errors with stable idempotency keys", async
 it("retains profile drafts and rolls back a failed checklist update", async () => {
   const user = await login();
   await openProfile(user);
+  await user.click(screen.getByRole("button", { name: "Открыть чек-лист" }));
   state.fail = "PATCH /checklist/tasks/read-welcome";
   const checkbox = screen.getByRole("checkbox", {
     name: "Прочитать гид новичка",
@@ -255,6 +260,7 @@ it("retains profile drafts and rolls back a failed checklist update", async () =
     expect((checkbox as HTMLInputElement).checked).toBe(false),
   );
   state.fail = "PATCH /profile";
+  await openProfile(user);
   await user.click(screen.getByRole("button", { name: "Изменить профиль" }));
   await user.clear(screen.getByLabelText("Имя и фамилия"));
   await user.type(
@@ -267,25 +273,28 @@ it("retains profile drafts and rolls back a failed checklist update", async () =
   ).toBe("Сохранённый черновик");
   await user.click(screen.getByRole("button", { name: "Отмена" }));
 });
-it("handles registration, wrong credentials and mobile navigation", async () => {
+it("has no self-registration and handles wrong credentials and mobile navigation", async () => {
   const user = userEvent.setup();
   render(<App />);
-  await user.click(
-    await screen.findByRole("button", { name: "Создать свой аккаунт" }),
-  );
+  await screen.findByRole("button", { name: "Войти в пространство" });
+  expect(
+    screen.queryByRole("button", {
+      name: /Создать.*аккаунт|Регистрация|Google/,
+    }),
+  ).toBeNull();
+  expect(
+    screen.getByText(/Новых пользователей добавляет администратор/),
+  ).toBeTruthy();
   await user.clear(screen.getByLabelText("Email"));
   await user.type(screen.getByLabelText("Email"), "new@buddy.test");
   await user.clear(screen.getByLabelText("Пароль"));
   await user.type(screen.getByLabelText("Пароль"), "WrongPassword123!");
   await user.click(
-    await screen.findByRole("button", { name: "Создать аккаунт" }),
+    await screen.findByRole("button", { name: "Войти в пространство" }),
   );
   await screen.findByText("Неверный email или пароль");
   await user.clear(screen.getByLabelText("Пароль"));
   await user.type(screen.getByLabelText("Пароль"), "NewPassword123!");
-  await user.click(
-    screen.getByRole("button", { name: "Уже есть аккаунт? Войти" }),
-  );
   await user.click(
     screen.getByRole("button", { name: "Войти в пространство" }),
   );
@@ -294,6 +303,11 @@ it("handles registration, wrong credentials and mobile navigation", async () => 
     await screen.findByRole("button", { name: "Подтвердить вход" }),
   );
   await screen.findByRole("heading", { name: /Привет,/ });
+  expect(
+    vi
+      .mocked(fetch)
+      .mock.calls.some(([url]) => String(url).includes("/auth/register")),
+  ).toBe(false);
   await user.click(screen.getByRole("button", { name: "Открыть навигацию" }));
   expect(
     screen
@@ -333,6 +347,7 @@ it("restores sessions and unfinished conversations", async () => {
   ];
   const user = userEvent.setup();
   render(<App />);
+  await user.click(await screen.findByRole("button", { name: "AI-buddy" }));
   await user.click(
     await screen.findByRole("button", {
       name: "Сохранённый вопрос",

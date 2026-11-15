@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "../components/Icon";
 import { useNotes } from "../hooks/useNotes";
 
@@ -10,157 +10,225 @@ const stamp = (iso: string) =>
     minute: "2-digit",
   }).format(new Date(iso));
 
-export function NotesScreen() {
-  const store = useNotes(),
-    [draft, setDraft] = useState(""),
-    [editing, setEditing] = useState<{ id: string; content: string } | null>(
-      null,
-    );
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    const content = draft.trim();
-    if (!content) return;
-    if (await store.create(content)) setDraft("");
+export function NotesScreen({
+  onBoards,
+  initialNoteId,
+}: {
+  onBoards: () => void;
+  initialNoteId?: string | null;
+}) {
+  const store = useNotes();
+  const [selected, setSelected] = useState<string | "new" | null>(
+    initialNoteId || null,
+  );
+  const [content, setContent] = useState("");
+  const [search, setSearch] = useState("");
+  const note = store.items?.find((n) => n.id === selected);
+  const dirty = content !== (note?.content || "");
+  useEffect(() => {
+    // Load a note opened from Home once the server list arrives.
+    if (initialNoteId && note && !content) setContent(note.content);
+  }, [initialNoteId, note]);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+  function select(id: string | "new" | null) {
+    if (
+      dirty &&
+      !window.confirm("Изменения не сохранены. Закрыть заметку без сохранения?")
+    )
+      return;
+    setSelected(id);
+    setContent(store.items?.find((n) => n.id === id)?.content || "");
   }
-  async function saveEdit(e: FormEvent) {
+  async function save(e: FormEvent) {
     e.preventDefault();
-    if (!editing) return;
-    const note = store.items?.find((n) => n.id === editing.id);
-    if (!note || !editing.content.trim()) return;
-    if (await store.save(note, editing.content.trim())) setEditing(null);
+    if (!content.trim()) return;
+    if (note) await store.save(note, content);
+    else if (await store.create(content)) {
+      setSelected(null);
+      setContent("");
+    }
   }
+  async function remove() {
+    if (note && (await store.remove(note.id))) {
+      setSelected(null);
+      setContent("");
+    }
+  }
+  const filtered = store.items?.filter((n) =>
+    n.content.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+  );
   return (
-    <div className="page-content">
-      <div className="page-heading">
-        <span className="eyebrow">ЛИЧНЫЙ БЛОКНОТ</span>
-        <h1>Мои заметки</h1>
-        <p>
-          Мысли, ссылки и договорённости, которые хочется сохранить под рукой.
-          Эти заметки видишь только ты.
-        </p>
-      </div>
-      <form className="notes-composer" onSubmit={add}>
-        <label className="notes-field">
-          <span className="quiet-label">Новая заметка</span>
-          <textarea
-            aria-label="Текст новой заметки"
-            placeholder="Что стоит запомнить?"
-            rows={3}
-            maxLength={20000}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
-        </label>
-        <button
-          className="primary-button"
-          type="submit"
-          disabled={store.busy || !draft.trim()}
-        >
-          <Icon name="plus" size={17} />
-          Добавить заметку
-        </button>
-      </form>
-      {store.error && (
-        <div className="notes-error">
-          <p className="inline-error" role="alert">
-            {store.error}
-          </p>
+    <div className={"notebook " + (selected ? "note-open" : "note-closed")}>
+      <aside className="notebook-list" aria-label="Список заметок">
+        <div className="notebook-heading">
+          <h1>Мои заметки</h1>
           <button
-            className="text-button"
-            disabled={store.busy}
+            className="icon-button"
+            aria-label="Обновить заметки"
+            disabled={store.busy || dirty}
             onClick={() => void store.reload()}
           >
-            Повторить загрузку
+            <Icon name="refresh" />
           </button>
         </div>
-      )}
-      {store.items === null ? (
-        <div className="empty-panel">
-          <span className="spinner" />
+        <div className="notebook-board">
+          <div>
+            <strong>Доска</strong>
+            <p>Стикеры, схемы и идеи</p>
+          </div>
+          <button className="secondary-button" onClick={onBoards}>
+            Открыть доски
+          </button>
+        </div>
+        <div className="notebook-search">
+          <input
+            aria-label="Поиск по заметкам"
+            placeholder="Поиск по заметкам"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button
+            className="primary-button"
+            aria-label="Новая заметка"
+            disabled={store.busy}
+            onClick={() => select("new")}
+          >
+            <Icon name="plus" />
+          </button>
+        </div>
+        {store.error && (
+          <div>
+            <p className="inline-error" role="alert">
+              {store.error}
+            </p>
+            <button
+              className="text-button"
+              disabled={store.busy || dirty}
+              onClick={() => void store.reload()}
+            >
+              Повторить загрузку
+            </button>
+          </div>
+        )}
+        {store.items === null ? (
           <p role="status">Загружаем заметки…</p>
-        </div>
-      ) : store.items.length === 0 ? (
-        <div className="empty-panel">
-          <Icon name="book" size={30} />
-          <h3>Пока пусто</h3>
-          <p>Запиши первое, что не хочется забыть: мысль, ссылку, задачу.</p>
-        </div>
-      ) : (
-        <ul className="notes-list">
-          {store.items.map((note) => (
-            <li className="note-card" key={note.id}>
-              {editing?.id === note.id ? (
-                <form className="note-editor" onSubmit={saveEdit}>
-                  <textarea
-                    aria-label={"Текст заметки " + note.id}
-                    rows={3}
-                    maxLength={20000}
-                    value={editing.content}
-                    onChange={(e) =>
-                      setEditing({ id: note.id, content: e.target.value })
-                    }
-                  />
-                  <div className="note-actions">
-                    <button
-                      className="primary-button"
-                      type="submit"
-                      disabled={store.busy || !editing.content.trim()}
-                    >
-                      Сохранить
-                    </button>
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      onClick={() => setEditing(null)}
-                    >
-                      Отмена
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <p className="note-text">{note.content}</p>
-                  <div className="note-meta">
-                    <span>{stamp(note.updatedAt)}</span>
-                    <span className="status-chip">версия {note.version}</span>
-                    <div className="note-actions">
-                      <button
-                        className="text-button"
-                        onClick={() =>
-                          setEditing({ id: note.id, content: note.content })
-                        }
-                        disabled={store.busy}
-                      >
-                        <Icon name="edit" size={16} />
-                        Изменить
-                      </button>
-                      <button
-                        className="text-button danger-text"
-                        onClick={() => void store.remove(note.id)}
-                        disabled={store.busy}
-                      >
-                        <Icon name="trash" size={16} />
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {store.items && store.items.length > 0 && (
-        <div className="notes-footer">
+        ) : !store.items.length ? (
+          <div className="notebook-empty">
+            <Icon name="book" size={32} />
+            <h2>Пока пусто</h2>
+            <p>Сохрани первую мысль, ссылку или договорённость.</p>
+          </div>
+        ) : !filtered?.length ? (
+          <p className="dashboard-help">Ничего не найдено</p>
+        ) : (
+          <ul className="notebook-cards">
+            {filtered.map((n, i) => (
+              <li key={n.id}>
+                <button
+                  disabled={store.busy}
+                  className={
+                    "notebook-card note-color-" +
+                    (i % 3) +
+                    (selected === n.id ? " selected" : "")
+                  }
+                  onClick={() => select(n.id)}
+                >
+                  <strong>{n.content.split("\n")[0] || "Без названия"}</strong>
+                  <span>
+                    {n.content.split("\n").slice(1).join(" ") ||
+                      "Открыть заметку"}
+                  </span>
+                  <small>{stamp(n.updatedAt)}</small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {store.items && (
           <span className="count-label">
             Всего заметок: {store.items.length}
           </span>
-          <button className="text-button" onClick={() => void store.reload()}>
-            <Icon name="refresh" size={16} />
-            Обновить
-          </button>
-        </div>
-      )}
+        )}
+      </aside>
+      <section className="notebook-editor" aria-label="Редактор заметки">
+        {selected ? (
+          <form onSubmit={save}>
+            <div className="notebook-toolbar">
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="К списку заметок"
+                disabled={store.busy}
+                onClick={() => select(null)}
+              >
+                <Icon name="back" />
+              </button>
+              <h2>{note ? "Заметка" : "Новая заметка"}</h2>
+              {note && (
+                <button
+                  type="button"
+                  className="text-button danger-text"
+                  disabled={store.busy}
+                  onClick={() => void remove()}
+                >
+                  <Icon name="trash" size={16} />
+                  Удалить
+                </button>
+              )}
+            </div>
+            <p className="dashboard-help">
+              Первая строка — заголовок. Остальное — твои мысли и
+              договорённости.
+            </p>
+            <textarea
+              aria-label={
+                note ? "Текст заметки " + note.id : "Текст новой заметки"
+              }
+              placeholder="Заголовок заметки&#10;Начни писать…"
+              value={content}
+              maxLength={20000}
+              onChange={(e) => setContent(e.target.value)}
+            />
+            <div className="notebook-save">
+              <span role="status">
+                {store.busy
+                  ? "Сохраняем…"
+                  : dirty
+                    ? "Есть несохранённые изменения"
+                    : note
+                      ? "Все изменения сохранены · версия " + note.version
+                      : "Личная заметка"}
+              </span>
+              <button
+                className="primary-button"
+                disabled={store.busy || !content.trim() || (!dirty && !!note)}
+              >
+                {note ? "Сохранить" : "Добавить заметку"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="notebook-placeholder">
+            <span aria-hidden="true">📝</span>
+            <h2>Выбери заметку или создай новую</h2>
+            <p>Мысли, ссылки и договорённости в одном месте.</p>
+            <button
+              className="primary-button"
+              disabled={store.busy}
+              onClick={() => select("new")}
+            >
+              Новая заметка
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

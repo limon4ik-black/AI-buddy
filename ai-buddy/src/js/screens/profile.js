@@ -1,0 +1,7 @@
+function profile(){const th=document.documentElement.dataset.theme==='dark',p=(n,r,c,t)=>`<div class="card ${t}"><div class="row"><span class="av" style="background:${c}">${n[0]}</span><div><b>${n}</b><div class="mu" style="color:inherit">${r}</div></div></div></div>`;
+return `<div class="wrap"><div class="card tp row wrapf" style="gap:18px"><span class="av" style="width:76px;height:76px;font-size:30px;background:var(--p)">${esc(S.u.name[0].toUpperCase())}</span><div><h1 style="font-size:26px">${esc(S.u.name)}</h1><p>Стажёр · программа 6 месяцев</p><p class="mu" style="color:inherit">${esc(S.u.email)} · старт 2 ноября 2026</p></div></div>
+<div class="g2"><div class="card"><h3 style="margin-bottom:8px">Моя команда</h3><p><b>Backend, Объявления</b></p><p class="mu">8 участников · Go, PostgreSQL, Redis</p><p class="mu">Синхронизации: пн, ср 11:00 · ретро по пятницам</p></div>
+<div class="card"><h3 style="margin-bottom:8px">Мой прогресс</h3><p>Задач выполнено: ${done()} из ${S.tasks.length}</p><div class="bar" style="margin-top:10px"><i style="width:${Math.round(done()/S.tasks.length*100)}%"></i></div></div></div>
+<h3>Наставники и контакты</h3><div class="g3">${p('Игорь Волков','Наставник (buddy)','#0099F7','tb')}${p('Мария Петрова','Руководитель','#FF4053','tr')}${p('Елена Орлова','HR BP','#04B24B','tg')}</div>
+<div class="row wrapf"><button class="btn sec" onclick="logout()">Выйти</button></div></div>`}
+function logout(){S.u=null;$('#app').hidden=true;$('#auth').hidden=false;history.replaceState(null,'','#');drawAuth()}

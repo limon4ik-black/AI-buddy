@@ -39,7 +39,8 @@ async function login() {
 
 it("создаёт, открывает и удаляет доску через свой origin", async () => {
   const user = await login();
-  await user.click(screen.getByRole("button", { name: "Доски" }));
+  await user.click(screen.getByRole("button", { name: "Заметки" }));
+  await user.click(screen.getByRole("button", { name: "Открыть доски" }));
   await screen.findByRole("heading", { name: "Доски" });
   expect(await screen.findByText("Пока ни одной доски")).toBeTruthy();
 

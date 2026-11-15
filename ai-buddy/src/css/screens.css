@@ -1,0 +1,26 @@
+#auth{min-height:100%;display:grid;grid-template-columns:1.15fr 1fr}
+.hero{background:var(--g);color:var(--ink);padding:40px;display:flex;flex-direction:column;justify-content:space-between;gap:32px}
+.hero h1{font-size:clamp(40px,5.6vw,78px);line-height:1;font-weight:800;letter-spacing:-.035em}
+.hero h1 span{background:var(--p);color:#fff;padding:0 .12em;display:inline-block;transform:rotate(-1.5deg)}
+.stk{display:flex;gap:10px;flex-wrap:wrap}.stk div{padding:12px 16px;border-radius:8px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.stk div:nth-child(1){background:var(--bt);transform:rotate(-3deg)}.stk div:nth-child(2){background:var(--pt);transform:rotate(2deg)}.stk div:nth-child(3){background:#fff;transform:rotate(-1.5deg)}.stk div:nth-child(4){background:var(--yt);transform:rotate(2.5deg)}.stk div:nth-child(5){background:var(--rt);transform:rotate(-2deg)}
+.form{padding:40px;display:flex;flex-direction:column;justify-content:center;gap:14px;max-width:470px;width:100%;margin:auto}
+.tabs{display:flex;background:var(--ln);border-radius:14px;padding:4px}.tabs button{flex:1;border:0;background:none;border-radius:10px;padding:9px;font-weight:700;color:var(--mu)}.tabs button.on{background:var(--sf);color:var(--tx)}
+.cw{display:grid;grid-template-columns:320px 1fr;height:100%}
+.cl{border-right:1px solid var(--ln);background:var(--sf);overflow:auto;padding:14px;display:flex;flex-direction:column;gap:6px}
+.ci{display:flex;gap:12px;align-items:center;border:0;background:none;text-align:left;padding:10px;border-radius:16px;width:100%}.ci.on,.ci:hover{background:var(--bg)}
+.av{width:42px;height:42px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+.cc{display:flex;flex-direction:column;min-height:0;height:100%}.cc>header{padding:14px 20px;border-bottom:1px solid var(--ln);background:var(--sf);display:flex;align-items:center;gap:12px}
+#msgs{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.m{max-width:min(580px,88%);padding:12px 14px;border-radius:18px;display:flex;flex-direction:column;gap:10px}.m.bot{background:var(--sf);border:1px solid var(--ln);border-bottom-left-radius:5px;align-self:flex-start}.m.me{background:var(--b);color:var(--ink);border-bottom-right-radius:5px;align-self:flex-end}
+.typing{display:flex;gap:4px}.typing i{width:8px;height:8px;border-radius:50%;background:var(--mu);animation:bl 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}@keyframes bl{50%{opacity:.25}}
+.compose{padding:10px 16px 14px;background:var(--sf);border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:10px}.compose .row input{flex:1}
+.back{display:none;border:0;background:none;font-size:22px;padding:0 6px}
+.nw{display:grid;grid-template-columns:360px 1fr;height:100%}.nl{border-right:1px solid var(--ln);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--sf)}
+.nt{border:0;text-align:left;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:4px;width:100%}.nt.on{outline:2px solid var(--tx)}.nt b,.nt span{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:var(--ink)}.nt span{font-size:14px;opacity:.75}
+.ne{padding:24px;display:flex;flex-direction:column;gap:12px;overflow:auto}.ne .t{font-size:28px;font-weight:800;border:0;background:none;padding:0}.ne textarea{flex:1;min-height:320px;border:0;background:none;padding:0;resize:none;font-size:17px;line-height:1.6}
+.empty{margin:auto;text-align:center;color:var(--mu)}
+#bd{position:fixed;inset:0;z-index:50;background:var(--bg);background-image:radial-gradient(var(--ln) 1.5px,transparent 1.5px);background-size:24px 24px;overflow:hidden;touch-action:none}
+#bd .bar2{position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:10px;align-items:center;padding:12px;background:var(--sf);border-bottom:1px solid var(--ln);z-index:2;flex-wrap:wrap}
+.st{position:absolute;width:190px;min-height:130px;border-radius:6px;box-shadow:0 8px 20px rgba(0,0,0,.14);display:flex;flex-direction:column;color:var(--ink)}.sth{touch-action:none;cursor:grab;display:flex;justify-content:space-between;padding:4px 8px;opacity:.6}.sth button{border:0;background:none;font-size:18px;line-height:1}.stt{padding:6px 12px 12px;flex:1;outline:none;font-weight:500}
+.nav{display:none}

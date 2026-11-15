@@ -130,13 +130,13 @@ export function useBuddy() {
       api.onExpired = () => {};
     };
   }, [loadWorkspace, clearSession]);
-  async function login(email: string, password: string, register = false) {
+  async function login(email: string, password: string) {
     setAuthBusy(true);
     setError("");
     setNotice("");
     try {
       const res = await api.request<{ message?: string }>(
-        "/auth/" + (register ? "register" : "login"),
+        "/auth/login",
         "POST",
         { email, password },
       );
