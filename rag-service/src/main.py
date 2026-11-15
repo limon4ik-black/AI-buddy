@@ -15,13 +15,16 @@ from .runtime import single_instance
 
 logger = logging.getLogger(__name__)
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
+HistoryText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=32000)]
 security = HTTPBearer(auto_error=False)
 
 
 class Turn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     role: Literal["user", "assistant"]
-    content: Text
+    # Chat persists assistant answers up to 32000 bytes, so valid stored replies
+    # must remain valid when sent back as history on a subsequent question.
+    content: HistoryText
 
 
 class ChatRequest(BaseModel):
@@ -141,6 +144,17 @@ async def generate(body: GenerateRequest, request: Request,
             {"documentId": source["documentId"], "title": source["title"],
              "section": " / ".join(source["headings"])} for source in result["sources"]
         ], "suggestedAction": action, "mode": "rag"}
+    except httpx.TransportError as exc:
+        logger.error("Groq connection unavailable: %s", type(exc).__name__)
+        raise HTTPException(503, "Нет связи с AI-провайдером. Проверьте VPN и повторите запрос.") from None
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 429:
+            raise HTTPException(429, "Лимит AI-провайдера. Повторите запрос через минуту.") from None
+        if exc.response.status_code == 503:
+            logger.warning("AI provider temporarily unavailable")
+            raise HTTPException(503, "AI-сервис временно недоступен. Повторите запрос позже.") from None
+        logger.error("Generate failed: upstream status=%s", exc.response.status_code)
+        raise HTTPException(502, "Не удалось получить ответ") from None
     except Exception as exc:
         logger.error("Generate failed: %s", type(exc).__name__)
         raise HTTPException(502, "Не удалось получить ответ") from None

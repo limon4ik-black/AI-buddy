@@ -33,13 +33,13 @@ async function login() {
   await user.click(
     await screen.findByRole("button", { name: "Подтвердить вход" }),
   );
-  await screen.findByRole("heading", { name: /С чего начнём/ });
+  await screen.findByRole("heading", { name: /Привет,/ });
   return user;
 }
 
 it("создаёт, открывает и удаляет доску через свой origin", async () => {
   const user = await login();
-  await user.click(screen.getByRole("button", { name: /Доски/ }));
+  await user.click(screen.getByRole("button", { name: "Доски" }));
   await screen.findByRole("heading", { name: "Доски" });
   expect(await screen.findByText("Пока ни одной доски")).toBeTruthy();
 
@@ -57,9 +57,9 @@ it("создаёт, открывает и удаляет доску через �
   await user.click(await screen.findByRole("button", { name: "Удалить" }));
   expect(await screen.findByText("Пока ни одной доски")).toBeTruthy();
 
-  const calls = vi.mocked(globalThis.fetch).mock.calls.map((call) =>
-    String(call[0]),
-  );
+  const calls = vi
+    .mocked(globalThis.fetch)
+    .mock.calls.map((call) => String(call[0]));
   expect(calls.some((url) => url.startsWith("/board-api/boards"))).toBe(true);
   // наружу не ходим: CSP фронта разрешает только свой origin
   expect(calls.some((url) => /^https?:\/\//.test(url))).toBe(false);

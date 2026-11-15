@@ -65,7 +65,7 @@ func main() {
 
 	r := gin.New()
 	// CORS первым: preflight уходит без Authorization, авторизация его бы отвергла.
-	r.Use(middleware.Logger(log), middleware.Recover(log), middleware.CORS(strings.Split(config.Env("CORS_ORIGINS", defaultOrigins), ",")), metrics.Middleware("note-service"))
+	r.Use(middleware.Logger(log), metrics.Middleware("note-service"), middleware.Recover(log), middleware.CORS(strings.Split(config.Env("CORS_ORIGINS", defaultOrigins), ",")))
 	// Без авторизации: страница должна открываться до того, как в неё ввели токен.
 	// Пустой путь библиотека не отдаёт (404), поэтому «/swagger» и «/swagger/» ведём на index.html.
 	swagger := ginSwagger.WrapHandler(swaggerFiles.Handler)

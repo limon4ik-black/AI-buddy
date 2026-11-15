@@ -45,7 +45,13 @@ beforeEach(() => {
       version += 1;
       return reply({ ...board, scene: body.scene, version });
     }
-    if (init?.method === "GET") return reply({ ...board, title: "с сервера", version: 7 });
+    if (init?.method === "GET")
+      return reply({
+        ...board,
+        title: "с сервера",
+        version: 7,
+        scene: { ...scene, elements: [{ id: "fresh" }] },
+      });
     return reply({ ...board });
   });
 });
@@ -112,5 +118,17 @@ it("перезагрузка забирает доску с сервера", asy
   act(() => void result.current.reload());
   await waitFor(() => expect(result.current.title).toBe("с сервера"));
   expect(result.current.revision).toBe(1);
+  expect(result.current.initialScene.elements).toEqual([{ id: "fresh" }]);
   expect(calls.some((call) => call.method === "GET")).toBe(true);
+});
+
+it("не сохраняет неизменённую доску при смене callback родителя", async () => {
+  const { rerender, unmount } = renderHook(
+    ({ onSaved }) => useSceneAutosave(board, onSaved, 10),
+    { initialProps: { onSaved: vi.fn() } },
+  );
+  rerender({ onSaved: vi.fn() });
+  await new Promise((r) => setTimeout(r, 30));
+  unmount();
+  expect(calls.filter((call) => call.method === "PATCH")).toHaveLength(0);
 });

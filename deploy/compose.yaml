@@ -135,9 +135,11 @@ services:
   note_import:
     build: {context: .., dockerfile: note-service/Dockerfile}
     entrypoint: [/import-onboarding]
+    volumes: ['../rag-service/data/knowledge/v1:/knowledge:ro']
     networks: [database]
     environment:
       LEGACY_DATABASE_URL: postgres://info_user:${INFO_DB_PASSWORD}@postgres:5432/info_db?sslmode=disable
+      KNOWLEDGE_DIRECTORY: /knowledge
       DATABASE_URL: postgres://notes:${POSTGRES_PASSWORD}@note_postgres:5432/notes?sslmode=disable
     depends_on: {note_migrate: {condition: service_completed_successfully}, employee: {condition: service_healthy}}
   note_service:
@@ -158,6 +160,8 @@ services:
       POSTGRES_DB: notes
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       CORS_ORIGINS: ${APP_ORIGIN:-http://localhost:8080}
+      RATE_LIMIT_RPS: ${RATE_LIMIT_RPS:-20}
+      RATE_LIMIT_BURST: ${RATE_LIMIT_BURST:-40}
     depends_on: {note_import: {condition: service_completed_successfully}, employee: {condition: service_healthy}}
   rag_postgres:
     profiles: [rag]
@@ -188,6 +192,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: rag
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      HTTPS_PROXY: ${RAG_HTTPS_PROXY:-}
+      NO_PROXY: localhost,127.0.0.1,note_service,employee,gateway,rag_postgres,mailpit
       GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
       FRIEND_TOKEN: ${RAG_SERVICE_TOKEN}
       CHAT_SERVICE_TOKEN: ${CHAT_SERVICE_TOKEN}

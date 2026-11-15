@@ -20,7 +20,11 @@ async function login(person?: string) {
     await screen.findByRole("button", { name: "Войти в пространство" }),
   );
   await user.type(await screen.findByPlaceholderText("000000"), "123456");
-  await user.click(await screen.findByRole("button", { name: "Подтвердить вход" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Подтвердить вход" }),
+  );
+  await screen.findByRole("heading", { name: /Привет,/ });
+  await user.click(screen.getByRole("button", { name: "AI-buddy" }));
   await screen.findByRole("heading", { name: /С чего начнём/ });
   return user;
 }
@@ -31,12 +35,14 @@ async function openProfile(user: ReturnType<typeof userEvent.setup>) {
 it("recovers the password with an email code", async () => {
   render(<App />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "Забыли пароль?" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Забыли пароль?" }),
+  );
   await user.click(screen.getByRole("button", { name: "Получить код" }));
   await user.type(await screen.findByPlaceholderText("000000"), "123456");
   await user.type(screen.getByLabelText("Новый пароль"), "NewPassword123!");
   await user.click(screen.getByRole("button", { name: "Сменить пароль" }));
-  await screen.findByRole("heading", { name: /С чего начнём/ });
+  await screen.findByRole("heading", { name: /Привет,/ });
 });
 it("shows a team-aware chat, confirms a request and saves progress in the profile", async () => {
   const user = await login("Анна Frontend");
@@ -189,7 +195,9 @@ it("renames, finds and deletes chats without mixing accounts", async () => {
     screen.getByRole("button", { name: "Войти в пространство" }),
   );
   await user.type(await screen.findByPlaceholderText("000000"), "123456");
-  await user.click(await screen.findByRole("button", { name: "Подтвердить вход" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Подтвердить вход" }),
+  );
   await screen.findByRole("heading", { name: /Привет, София/ });
   expect(screen.queryByRole("button", { name: "Мой первый день" })).toBeNull();
   await openProfile(user);
@@ -269,7 +277,9 @@ it("handles registration, wrong credentials and mobile navigation", async () => 
   await user.type(screen.getByLabelText("Email"), "new@buddy.test");
   await user.clear(screen.getByLabelText("Пароль"));
   await user.type(screen.getByLabelText("Пароль"), "WrongPassword123!");
-  await user.click(await screen.findByRole("button", { name: "Создать аккаунт" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Создать аккаунт" }),
+  );
   await screen.findByText("Неверный email или пароль");
   await user.clear(screen.getByLabelText("Пароль"));
   await user.type(screen.getByLabelText("Пароль"), "NewPassword123!");
@@ -280,8 +290,10 @@ it("handles registration, wrong credentials and mobile navigation", async () => 
     screen.getByRole("button", { name: "Войти в пространство" }),
   );
   await user.type(await screen.findByPlaceholderText("000000"), "123456");
-  await user.click(await screen.findByRole("button", { name: "Подтвердить вход" }));
-  await screen.findByRole("heading", { name: /С чего начнём/ });
+  await user.click(
+    await screen.findByRole("button", { name: "Подтвердить вход" }),
+  );
+  await screen.findByRole("heading", { name: /Привет,/ });
   await user.click(screen.getByRole("button", { name: "Открыть навигацию" }));
   expect(
     screen

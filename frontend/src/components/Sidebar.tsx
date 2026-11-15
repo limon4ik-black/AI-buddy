@@ -37,7 +37,7 @@ export function Sidebar({
           <button
             className="brand-button"
             onClick={() => {
-              buddy.newChat();
+              buddy.navigate("home");
               onClose();
             }}
             aria-label="На главную"
@@ -73,6 +73,27 @@ export function Sidebar({
           </span>
           <Icon name="chevron" size={16} />
         </button>
+        <nav className="primary-navigation" aria-label="Разделы пространства">
+          {(
+            [
+              ["home", "Главная", "home"],
+              ["chat", "AI-buddy", "chat"],
+              ["notes", "Заметки", "edit"],
+              ["boards", "Доски", "board"],
+              ["checklist", "Чек-лист", "check"],
+            ] as const
+          ).map(([view, title, icon]) => (
+            <button
+              key={view}
+              className={buddy.view === view ? "active" : ""}
+              aria-current={buddy.view === view ? "page" : undefined}
+              onClick={() => navigate(view)}
+            >
+              <Icon name={icon} size={20} />
+              <span>{title}</span>
+            </button>
+          ))}
+        </nav>
         <button
           className="new-chat-button"
           onClick={() => {
@@ -121,7 +142,7 @@ export function Sidebar({
                     void buddy.selectChat(c.id);
                     onClose();
                   }}
-                  disabled={buddy.generating}
+                  disabled={buddy.generating || buddy.sending}
                 >
                   <Icon name="chat" size={16} />
                   <span>{c.title}</span>
@@ -185,22 +206,6 @@ export function Sidebar({
             >
               <Icon name="cube" size={19} />
               Сервисы
-              <Icon name="chevron" size={14} />
-            </button>
-            <button
-              className={buddy.view === "notes" ? "active" : ""}
-              onClick={() => navigate("notes")}
-            >
-              <Icon name="edit" size={19} />
-              Заметки
-              <Icon name="chevron" size={14} />
-            </button>
-            <button
-              className={buddy.view === "boards" ? "active" : ""}
-              onClick={() => navigate("boards")}
-            >
-              <Icon name="board" size={19} />
-              Доски
               <Icon name="chevron" size={14} />
             </button>
           </nav>

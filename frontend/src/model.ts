@@ -11,6 +11,8 @@ import type {
   AccessRequest,
 } from "./api";
 export type View =
+  | "home"
+  | "checklist"
   | "chat"
   | "profile"
   | "teams"
@@ -67,4 +69,12 @@ export const roleLabel: Record<string, string> = {
   buddy: "Бадди",
   engineer: "Инженер",
   intern: "Стажёр",
+};
+export const safeExternalUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
 };

@@ -11,6 +11,10 @@ import (
 	"github.com/limon4ik-black/AI-buddy/shared/platform/httpapi"
 )
 
+type UpstreamError struct{ StatusCode int }
+
+func (e *UpstreamError) Error() string { return fmt.Sprintf("upstream status %d", e.StatusCode) }
+
 func Call[T any](ctx context.Context, client *http.Client, method, url, secret, bearer string, body any) (T, error) {
 	var result T
 	var data []byte
@@ -37,7 +41,7 @@ func Call[T any](ctx context.Context, client *http.Client, method, url, secret, 
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 300 {
-		return result, fmt.Errorf("upstream status %d", res.StatusCode)
+		return result, &UpstreamError{StatusCode: res.StatusCode}
 	}
 	err = json.NewDecoder(io.LimitReader(res.Body, 2<<20)).Decode(&result)
 	return result, err
