@@ -8,6 +8,9 @@ fi
 umask 077
 config_tmp=$(mktemp)
 trap 'rm -f "$config_tmp"' EXIT
-docker run --rm --network none -v "$PWD/deploy/keygen/main.go:/src/main.go:ro" -w /src golang:1.25-alpine go run main.go > "$config_tmp"
+docker run --rm --network none \
+  -v "$PWD/deploy/keygen/main.go:/src/main.go:ro" \
+  -v "$PWD/.env.example:/src/.env.example:ro" \
+  -w /src golang:1.27-bookworm go run main.go > "$config_tmp"
 mv "$config_tmp" .env
 echo 'Created .env. Local email inbox: http://localhost:8025'

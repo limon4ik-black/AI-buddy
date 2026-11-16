@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createUUID } from "../uuid";
 import {
   api,
   type Profile,
@@ -309,7 +310,7 @@ export function useBuddy() {
       }
       let pending = pendingSend.current;
       if (!pending || pending.content !== content || pending.chatId !== id) {
-        pending = { id: crypto.randomUUID(), content, chatId: id };
+        pending = { id: createUUID(), content, chatId: id };
         pendingSend.current = pending;
       }
       const message = await api.request<Message>(
@@ -421,7 +422,7 @@ export function useBuddy() {
     const keyId = messageId + ":" + action.system;
     let key = actionKeys.current.get(keyId);
     if (!key) {
-      key = crypto.randomUUID();
+      key = createUUID();
       actionKeys.current.set(keyId, key);
     }
     setPendingAction({ action, key });

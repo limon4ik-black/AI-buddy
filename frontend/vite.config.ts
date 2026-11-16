@@ -30,8 +30,6 @@ export default defineConfig({
         "src/**/*.test.*",
         "src/test-setup.ts",
         "src/test-fixtures.ts",
-        // Обёртка над чужим canvas-SDK: в jsdom холст не живёт, логика сохранения вынесена в хук.
-        "src/features/BoardEditor.tsx",
       ],
       reporter: ["text", "json-summary", "html", "lcov"],
       reportsDirectory: "../reports/frontend",

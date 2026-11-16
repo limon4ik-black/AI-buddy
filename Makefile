@@ -1,12 +1,12 @@
 .DEFAULT_GOAL := up
+export COMPOSE_PARALLEL_LIMIT ?= 2
 COMPOSE = docker compose --env-file .env -f deploy/compose.yaml
 METRICS = docker compose --env-file .env -f observability/compose.yaml
 .PHONY: configure up down logs build config rag rag-import metrics-up metrics-down metrics-logs
 configure:
 	@sh deploy/configure.sh
 up: configure
-	$(COMPOSE) up -d --build
-	$(METRICS) up -d
+	$(COMPOSE) up -d --build --wait --wait-timeout 1200
 down:
 	$(METRICS) down --remove-orphans 2>/dev/null || true
 	$(COMPOSE) --profile rag down --remove-orphans
@@ -23,8 +23,7 @@ build: configure
 config: configure
 	$(COMPOSE) config --quiet
 rag: configure
-	$(COMPOSE) -f deploy/rag.yaml --profile rag up -d --build
-	$(METRICS) up -d
+	$(COMPOSE) -f deploy/rag.yaml --profile rag up -d --build --wait --wait-timeout 1800
 rag-import: configure
 	$(COMPOSE) --profile rag up -d --wait rag_postgres
 	$(COMPOSE) --profile rag build rag

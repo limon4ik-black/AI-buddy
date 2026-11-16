@@ -3,7 +3,7 @@
 # не переписывать общий deploy/compose.yaml: сеть у них одна (app), поэтому
 # цели резолвятся по именам сервисов основного стека.
 #
-# Запуск: make up (он поднимает и основной стек, и это), отдельно — make metrics-up.
+# Запуск после основного стека: make metrics-up. Остановка: make metrics-down.
 name: ai-buddy-observability
 
 services:

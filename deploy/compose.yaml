@@ -47,13 +47,11 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
-      HTTPS_PROXY: ${HTTPS_PROXY:-}
       SMTP_HOST: ${BUDDY_SMTP_HOST:-mailpit}
       SMTP_PORT: ${BUDDY_SMTP_PORT:-1025}
       SMTP_USER: ${BUDDY_SMTP_USER:-}
       SMTP_PASSWORD: ${BUDDY_SMTP_PASSWORD:-}
       SMTP_FROM: ${BUDDY_SMTP_FROM:-buddy@demo.test}
-    extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on: {postgres: {condition: service_healthy}, mailpit: {condition: service_started}}
   employee:
     <<: *runtime
@@ -192,8 +190,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: rag
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      HTTPS_PROXY: ${RAG_HTTPS_PROXY:-}
-      NO_PROXY: localhost,127.0.0.1,note_service,employee,gateway,rag_postgres,mailpit
       GROQ_MODEL: ${GROQ_MODEL:-qwen/qwen3.8-27b}
       FRIEND_TOKEN: ${RAG_SERVICE_TOKEN}
       CHAT_SERVICE_TOKEN: ${CHAT_SERVICE_TOKEN}
