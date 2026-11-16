@@ -1,0 +1,13 @@
+# Reuse the existing CUDA-enabled PyTorch image and the host NVIDIA driver.
+# No CUDA base image, driver installation or host CUDA directories are needed.
+services:
+  rag:
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['${RAG_GPU_DEVICE:-0}']
+              capabilities: [gpu]

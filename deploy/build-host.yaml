@@ -1,0 +1,25 @@
+# Linux/VPN workaround for DNS timeouts in Docker build RUN instructions.
+# This affects build networking only; runtime service networks stay isolated.
+x-host-build: &host-build
+  network: ${BUILD_NETWORK:-default}
+services:
+  auth:
+    build: *host-build
+  employee:
+    build: *host-build
+  chat:
+    build: *host-build
+  ragmock:
+    build: *host-build
+  corpmock:
+    build: *host-build
+  gateway:
+    build: *host-build
+  note_import:
+    build: *host-build
+  note_service:
+    build: *host-build
+  frontend:
+    build: *host-build
+  rag:
+    build: *host-build

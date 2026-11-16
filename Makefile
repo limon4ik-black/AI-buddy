@@ -1,6 +1,10 @@
 .DEFAULT_GOAL := up
 export COMPOSE_PARALLEL_LIMIT ?= 2
-COMPOSE = docker compose --env-file .env -f deploy/compose.yaml
+# Docker bridge DNS can be unreachable behind a Linux VPN.
+# Override with BUILD_NETWORK=default to use Docker's regular build network.
+BUILD_NETWORK ?= $(if $(filter Linux,$(shell uname -s)),host,default)
+export BUILD_NETWORK
+COMPOSE = docker compose --env-file .env -f deploy/compose.yaml -f deploy/build-host.yaml
 METRICS = docker compose --env-file .env -f observability/compose.yaml
 .PHONY: configure up down logs build config rag rag-import metrics-up metrics-down metrics-logs
 configure:
